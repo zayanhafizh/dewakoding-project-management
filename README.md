@@ -21,7 +21,7 @@ A Laravel Filament 3 application for managing projects with ticket management an
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/dewakoding-project-management.git
+   git clone https://github.com/SeptiawanAjiP/dewakoding-project-management
    cd dewakoding-project-management
    ```
 
