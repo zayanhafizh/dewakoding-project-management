@@ -60,12 +60,14 @@ A Laravel Filament 3 application for managing projects with ticket management an
    ```
    php artisan make:filament-user
    ```
-7. Create super admin
+7. Activate Role & Permission
    ```
+   php artisan shield:setup
+   php artisan shield:install
    php artisan shield:super-admin
    ```
 
-. Start the development server:
+8. Start the development server:
    ```
    php artisan serve
    ```
