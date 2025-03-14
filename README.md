@@ -1,5 +1,7 @@
 # DewaKoding Project Management
 
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-1.jpeg)
+
 A Laravel Filament 3 application for managing projects with ticket management and status tracking.
 
 ## Features
@@ -16,6 +18,8 @@ A Laravel Filament 3 application for managing projects with ticket management an
 - Laravel 12
 - MySQL 8.0+ / PostgreSQL 12+
 - Composer
+
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-2.jpeg)
 
 ## Installation
 
@@ -56,8 +60,12 @@ A Laravel Filament 3 application for managing projects with ticket management an
    ```
    php artisan make:filament-user
    ```
+7. Create super admin
+   ```
+   php artisan shield:super-admin
+   ```
 
-7. Start the development server:
+. Start the development server:
    ```
    php artisan serve
    ```
