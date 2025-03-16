@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Pages;
 
 use App\Filament\Resources\TicketResource;
@@ -37,7 +36,6 @@ class ProjectBoardPage extends Page
             $this->projects = auth()->user()->projects;
         }
         
-        // Jika ada project, select project pertama
         if ($this->projects->isNotEmpty()) {
             $this->selectProject($this->projects->first()->id);
         }
@@ -45,10 +43,12 @@ class ProjectBoardPage extends Page
     
     public function selectProject(int $projectId): void
     {
-        $this->selectedProject = Project::find($projectId);
-        $this->loadTicketStatuses();
-        
         $this->selectedTicket = null;
+        $this->ticketStatuses = collect();
+        
+        $this->selectedProject = Project::find($projectId);
+        
+        $this->loadTicketStatuses();
     }
     
     public function loadTicketStatuses(): void
@@ -58,22 +58,21 @@ class ProjectBoardPage extends Page
             return;
         }
         
-        $statuses = $this->selectedProject->ticketStatuses()
+        $this->ticketStatuses = $this->selectedProject->ticketStatuses()
+            ->with(['tickets' => function($query) {
+                $query->with(['assignee', 'status'])
+                     ->orderBy('created_at', 'desc');
+            }])
             ->orderBy('id')
             ->get();
-            
-        $isAdmin = auth()->user()->hasRole(['super_admin', 'admin']);
         
-        foreach ($statuses as $status) {
-            $ticketsQuery = $status->tickets()->orderBy('created_at', 'desc');
-            $status->setRelation('tickets', $ticketsQuery->get());
+        foreach ($this->ticketStatuses as $status) {
+            \Log::info("Status: {$status->name}, Tickets: {$status->tickets->count()}");
         }
-        
-        $this->ticketStatuses = $statuses;
     }
 
     #[On('ticket-moved')]
-    public function moveTicket(int $ticketId, int $newStatusId): void
+    public function moveTicket($ticketId, $newStatusId): void
     {
         $ticket = Ticket::find($ticketId);
         
@@ -95,6 +94,7 @@ class ProjectBoardPage extends Page
             ]);
 
             $this->loadTicketStatuses();
+            
             $this->dispatch('ticket-updated');
             
             Notification::make()
@@ -108,6 +108,7 @@ class ProjectBoardPage extends Page
     public function refreshBoard(): void
     {
         $this->loadTicketStatuses();
+        $this->dispatch('ticket-updated');
     }
     
     public function showTicketDetails(int $ticketId): void
@@ -149,6 +150,11 @@ class ProjectBoardPage extends Page
                     'project_id' => $this->selectedProject?->id,
                     'ticket_status_id' => $this->selectedProject?->ticketStatuses->first()?->id
                 ])),
+            
+            Action::make('refresh_board')
+                ->label('Refresh Board')
+                ->icon('heroicon-m-arrow-path')
+                ->action('refreshBoard'),
         ];
     }
     

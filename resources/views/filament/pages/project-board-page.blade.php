@@ -28,51 +28,13 @@
 
     @if($selectedProject)
         <div
-            x-data="{
-                draggingTicket: null,
-                initDragAndDrop() {
-                    $el.querySelectorAll('.ticket-card').forEach(ticket => {
-                        ticket.setAttribute('draggable', true);
-                        
-                        ticket.addEventListener('dragstart', (e) => {
-                            this.draggingTicket = ticket.getAttribute('data-ticket-id');
-                            ticket.classList.add('opacity-50');
-                            e.dataTransfer.effectAllowed = 'move';
-                        });
-                        
-                        ticket.addEventListener('dragend', () => {
-                            ticket.classList.remove('opacity-50');
-                            this.draggingTicket = null;
-                        });
-                    });
-                    
-                    $el.querySelectorAll('.status-column').forEach(column => {
-                        column.addEventListener('dragover', (e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                            column.classList.add('bg-primary-50', 'dark:bg-primary-950');
-                        });
-                        
-                        column.addEventListener('dragleave', () => {
-                            column.classList.remove('bg-primary-50', 'dark:bg-primary-950');
-                        });
-                        
-                        column.addEventListener('drop', (e) => {
-                            e.preventDefault();
-                            column.classList.remove('bg-primary-50', 'dark:bg-primary-950');
-                            
-                            if (this.draggingTicket) {
-                                const statusId = column.getAttribute('data-status-id');
-                                $wire.moveTicket(this.draggingTicket, statusId);
-                            }
-                        });
-                    });
-                }
-            }"
-            x-init="initDragAndDrop()"
-            @ticket-updated="initDragAndDrop()"
-            @refresh-board.window="initDragAndDrop()"
+            x-data="dragDropHandler()"
+            x-init="init()"
+            @ticket-moved.window="init()"
+            @ticket-updated.window="init()"
+            @refresh-board.window="init()"
             class="overflow-x-auto pb-6"
+            id="board-container"
         >
             <div class="flex gap-4 min-w-full">
                 @foreach ($ticketStatuses as $status)
@@ -276,4 +238,103 @@
             </div>
         </div>
     @endif
+
+    {{-- Drag and Drop Handler Script --}}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('dragDropHandler', () => ({
+                draggingTicket: null,
+                
+                init() {
+                    this.$nextTick(() => {
+                        this.removeAllEventListeners();
+                        this.attachAllEventListeners();
+                    });
+                },
+                
+                removeAllEventListeners() {
+                    const tickets = document.querySelectorAll('.ticket-card');
+                    tickets.forEach(ticket => {
+                        ticket.removeAttribute('draggable');
+                        const newTicket = ticket.cloneNode(true);
+                        ticket.parentNode.replaceChild(newTicket, ticket);
+                    });
+                    
+                    const columns = document.querySelectorAll('.status-column');
+                    columns.forEach(column => {
+                        const newColumn = column.cloneNode(false);
+                        
+                        while (column.firstChild) {
+                            newColumn.appendChild(column.firstChild);
+                        }
+                        
+                        if (column.parentNode) {
+                            column.parentNode.replaceChild(newColumn, column);
+                        }
+                    });
+                },
+                
+                attachAllEventListeners() {
+                    const tickets = document.querySelectorAll('.ticket-card');
+                    tickets.forEach(ticket => {
+                        ticket.setAttribute('draggable', true);
+                        
+                        ticket.addEventListener('dragstart', (e) => {
+                            this.draggingTicket = ticket.getAttribute('data-ticket-id');
+                            ticket.classList.add('opacity-50');
+                            e.dataTransfer.effectAllowed = 'move';
+                        });
+                        
+                        ticket.addEventListener('dragend', () => {
+                            ticket.classList.remove('opacity-50');
+                            this.draggingTicket = null;
+                        });
+                        
+                        const detailsButton = ticket.querySelector('button');
+                        if (detailsButton) {
+                            const ticketId = ticket.getAttribute('data-ticket-id');
+                            detailsButton.addEventListener('click', () => {
+                                const componentId = document.querySelector('[wire\\:id]').getAttribute('wire:id');
+                                if (componentId) {
+                                    Livewire.find(componentId).showTicketDetails(ticketId);
+                                }
+                            });
+                        }
+                    });
+                    
+                    const columns = document.querySelectorAll('.status-column');
+                    columns.forEach(column => {
+                        column.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            column.classList.add('bg-primary-50', 'dark:bg-primary-950');
+                        });
+                        
+                        column.addEventListener('dragleave', () => {
+                            column.classList.remove('bg-primary-50', 'dark:bg-primary-950');
+                        });
+                        
+                        column.addEventListener('drop', (e) => {
+                            e.preventDefault();
+                            column.classList.remove('bg-primary-50', 'dark:bg-primary-950');
+                            
+                            if (this.draggingTicket) {
+                                const statusId = column.getAttribute('data-status-id');
+                                const ticketId = this.draggingTicket;
+                                this.draggingTicket = null;
+                                
+                                const componentId = document.querySelector('[wire\\:id]').getAttribute('wire:id');
+                                if (componentId) {
+                                    Livewire.find(componentId).moveTicket(
+                                        parseInt(ticketId), 
+                                        parseInt(statusId)
+                                    );
+                                }
+                            }
+                        });
+                    });
+                }
+            }));
+        });
+    </script>
 </x-filament-panels::page>
