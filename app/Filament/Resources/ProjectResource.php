@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Resources\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectResource extends Resource
 {
@@ -65,7 +66,7 @@ class ProjectResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                // No toggle filter here
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -93,5 +94,29 @@ class ProjectResource extends Resource
             'create' => Pages\CreateProject::route('/create'),
             'edit' => Pages\EditProject::route('/{record}/edit')
         ];
+    }
+    
+    // Add this method to show all projects for super_admin, but only member projects for regular users
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        // Check if the current user has the super_admin role
+        // Adjust this condition based on how you check for roles in your application
+        $userIsSuperAdmin = auth()->user() && (
+            // If using Spatie Permission package
+            (method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('super_admin'))
+            // Or if using a simple role column
+            || (isset(auth()->user()->role) && auth()->user()->role === 'super_admin')
+        );
+        
+        if (!$userIsSuperAdmin) {
+            // If not a super_admin, only show projects where user is a member
+            $query->whereHas('members', function (Builder $query) {
+                $query->where('user_id', auth()->id());
+            });
+        }
+        
+        return $query;
     }
 }

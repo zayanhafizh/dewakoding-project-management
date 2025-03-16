@@ -8,9 +8,11 @@ use App\Models\User;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class StatsOverview extends BaseWidget
 {
+    use HasWidgetShield;
     protected static ?string $pollingInterval = '30s';
     
     protected function getStats(): array
