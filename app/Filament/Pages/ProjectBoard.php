@@ -11,11 +11,11 @@ use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
 
-class ProjectBoardPage extends Page
+class ProjectBoard extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-view-columns';
     
-    protected static string $view = 'filament.pages.project-board-page';
+    protected static string $view = 'filament.pages.project-board';
     
     protected static ?string $title = 'Project Board';
     
