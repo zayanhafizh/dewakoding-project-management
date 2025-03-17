@@ -1,6 +1,7 @@
 # DewaKoding Project Management
 
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-1.jpeg)
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-4.jpeg)
 
 A Laravel Filament 3 application for managing projects with ticket management and status tracking.
 
