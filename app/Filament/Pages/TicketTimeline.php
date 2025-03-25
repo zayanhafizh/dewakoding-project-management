@@ -10,6 +10,7 @@ use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Contracts\View\View;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermission;
+use Auth;
 
 class TicketTimeline extends Page
 {
@@ -26,7 +27,13 @@ class TicketTimeline extends Page
     
     public function mount(): void
     {
-        $this->projects = Project::all();
+        $user = Auth::user();
+        
+        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+            $this->projects = Project::all();
+        } else {
+            $this->projects = $user->projects;
+        }
         
         if ($this->projects->isNotEmpty() && !$this->projectId) {
             $this->projectId = $this->projects->first()->id;
@@ -42,6 +49,9 @@ class TicketTimeline extends Page
             
         if ($this->projectId) {
             $query->where('project_id', $this->projectId);
+        } else {
+            $projectIds = $this->projects->pluck('id')->toArray();
+            $query->whereIn('project_id', $projectIds);
         }
         
         return $query->get();

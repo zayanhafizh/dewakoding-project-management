@@ -5,7 +5,12 @@ use App\Filament\Resources\TicketResource;
 use App\Models\Project;
 use App\Models\Ticket;
 use App\Models\TicketStatus;
+use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
@@ -65,28 +70,12 @@ class ProjectBoard extends Page
             }])
             ->orderBy('id')
             ->get();
-        
-        foreach ($this->ticketStatuses as $status) {
-            \Log::info("Status: {$status->name}, Tickets: {$status->tickets->count()}");
-        }
     }
 
     #[On('ticket-moved')]
     public function moveTicket($ticketId, $newStatusId): void
     {
         $ticket = Ticket::find($ticketId);
-        
-        if (!$this->canManageTicket($ticket)) {
-            Notification::make()
-                ->title('Permission Denied')
-                ->body('You do not have permission to move this ticket.')
-                ->danger()
-                ->send();
-            
-            $this->loadTicketStatuses();
-            $this->dispatch('ticket-updated');
-            return;
-        }
         
         if ($ticket && $ticket->project_id === $this->selectedProject?->id) {
             $ticket->update([
@@ -113,9 +102,17 @@ class ProjectBoard extends Page
     
     public function showTicketDetails(int $ticketId): void
     {
-        $ticket = Ticket::with(['assignee', 'status'])->find($ticketId);
+        $ticket = Ticket::with(['assignee', 'status', 'project'])->find($ticketId);
         
-        $this->selectedTicket = $ticket;
+        if (!$ticket) {
+            Notification::make()
+                ->title('Ticket Not Found')
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        $this->redirect(TicketResource::getUrl('view', ['record' => $ticketId]));
     }
     
     public function closeTicketDetails(): void

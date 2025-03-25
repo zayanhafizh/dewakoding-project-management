@@ -108,9 +108,22 @@
                                                     opacity: {{ $opacity }};">
                                                 
                                                 <!-- Tooltip on hover -->
-                                                <div class="absolute hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-10">
-                                                    <div>{{ $task['title'] }}</div>
-                                                    <div>Due: {{ $task['end_date'] }}</div>
+                                                <div 
+                                                    class="absolute top-0 h-full flex items-center justify-center text-xs font-medium text-white rounded-sm overflow-visible whitespace-nowrap group cursor-pointer"
+                                                    title="{{ $task['title'] }} - Due: {{ $task['end_date'] }}"
+                                                    style="
+                                                        background-color: {{ $backgroundColor }}; 
+                                                        left: {{ $left }}%; 
+                                                        width: {{ $width }}%;
+                                                        {{ $borderStyle }}
+                                                        opacity: {{ $opacity }};">
+                                                    
+                                                    <div class="fixed hidden group-hover:flex flex-col bottom-auto left-auto transform translate-y-[-100%] mt-[-10px] px-3 py-2 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap z-50 shadow-lg">
+                                                        <span class="font-medium mb-1">{{ $task['title'] }}</span>
+                                                        <span>ID: {{ $task['ticket_id'] }}</span>
+                                                        <span>Due: {{ $task['end_date'] }}</span>
+                                                        <span>{{ $task['remaining_days_text'] }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         @endif

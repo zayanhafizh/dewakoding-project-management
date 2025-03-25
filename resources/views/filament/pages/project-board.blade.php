@@ -1,4 +1,5 @@
 <x-filament-panels::page>
+    
     {{-- Project Selector --}}
     <div class="mb-6">
         <x-filament::section>
@@ -124,120 +125,6 @@
         </div>
     @endif
     
-    {{-- Ticket Detail Modal --}}
-    @if ($selectedTicket)
-        <div
-            x-data="{}"
-            x-on:keydown.escape.window="$wire.closeTicketDetails()"
-            class="fixed inset-0 z-40 flex items-center justify-center"
-        >
-            {{-- Modal Backdrop --}}
-            <div
-                class="fixed inset-0 bg-gray-950/50 dark:bg-gray-950/75"
-                wire:click="closeTicketDetails"
-            ></div>
-            
-            {{-- Modal Content --}}
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-2xl mx-auto max-h-[90vh] overflow-y-auto">
-                {{-- Modal Header --}}
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                        <span class="inline-flex items-center justify-center px-2 py-1 mr-2 text-xs font-mono rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                            {{ $selectedTicket->uuid }}
-                        </span>
-                        {{ $selectedTicket->name }}
-                    </h2>
-                    
-                    <div class="flex items-center gap-2">
-                        <button
-                            type="button"
-                            wire:click="editTicket({{ $selectedTicket->id }})"
-                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
-                        >
-                            <x-heroicon-m-pencil-square class="w-5 h-5" />
-                        </button>
-                        
-                        <button
-                            type="button"
-                            wire:click="closeTicketDetails"
-                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        >
-                            <x-heroicon-m-x-mark class="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-                
-                {{-- Modal Body --}}
-                <div class="space-y-6">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</h3>
-                            <div class="mt-1">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {{ match($selectedTicket->status->name) {
-                                        'To Do' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-                                        'In Progress' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-                                        'Review' => 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300',
-                                        'Done' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-                                        default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                                    } }}"
-                                >
-                                    {{ $selectedTicket->status->name }}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Assignee</h3>
-                            <div class="mt-1">
-                                @if ($selectedTicket->assignee)
-                                    <div class="flex items-center">
-                                        <span class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300 mr-2">
-                                            {{ substr($selectedTicket->assignee->name, 0, 1) }}
-                                        </span>
-                                        <span class="text-gray-900 dark:text-white">{{ $selectedTicket->assignee->name }}</span>
-                                    </div>
-                                @else
-                                    <span class="text-gray-500 dark:text-gray-400">Unassigned</span>
-                                @endif
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Due Date</h3>
-                            <div class="mt-1 text-gray-900 dark:text-white">
-                                @if ($selectedTicket->due_date)
-                                    <span class="{{ $selectedTicket->due_date->isPast() ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
-                                        {{ $selectedTicket->due_date->format('M d, Y') }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-500 dark:text-gray-400">No due date</span>
-                                @endif
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Created</h3>
-                            <div class="mt-1 text-gray-900 dark:text-white">
-                                {{ $selectedTicket->created_at->format('M d, Y H:i') }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
-                        @if ($selectedTicket->description)
-                            <div class="prose dark:prose-invert max-w-none">
-                                {!! $selectedTicket->description !!}
-                            </div>
-                        @else
-                            <div class="text-gray-500 dark:text-gray-400 italic">No description provided</div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
     {{-- Drag and Drop Handler Script --}}
     <script>

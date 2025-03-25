@@ -81,6 +81,7 @@ class TicketResource extends Resource
                     
                 Forms\Components\RichEditor::make('description')
                     ->label('Description')
+                    ->fileAttachmentsDirectory('attachments')
                     ->columnSpanFull(),
                     
                 Forms\Components\Select::make('user_id')
@@ -247,6 +248,7 @@ class TicketResource extends Resource
             'index' => Pages\ListTickets::route('/'),
             'create' => Pages\CreateTicket::route('/create'),
             'edit' => Pages\EditTicket::route('/{record}/edit'),
+            'view' => Pages\ViewTicket::route('/{record}'),
         ];
     }
     
