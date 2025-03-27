@@ -83,6 +83,7 @@ class ProjectResource extends Resource
         return [
             RelationManagers\TicketStatusesRelationManager::class,
             RelationManagers\MembersRelationManager::class,
+            RelationManagers\EpicsRelationManager::class,
             RelationManagers\TicketsRelationManager::class,
         ];
     }

@@ -41,7 +41,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-full table-fixed">
+                <table class="w-full table-fixed">
                     <thead>
                         <tr>
                             <th class="px-3 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200" style="width: 50%;">

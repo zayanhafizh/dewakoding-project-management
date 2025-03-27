@@ -10,6 +10,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Models\Epic;
 
 class TicketsRelationManager extends RelationManager
 {
@@ -38,6 +39,15 @@ class TicketsRelationManager extends RelationManager
                     ->default($defaultStatusId)
                     ->required()
                     ->searchable(),
+                Forms\Components\Select::make('epic_id')
+                    ->label('Epic')
+                    ->options(function () use ($projectId) {
+                        return Epic::where('project_id', $projectId)
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->nullable(),
                 Forms\Components\Select::make('user_id')
                     ->label('Assignee')
                     ->options(function () {

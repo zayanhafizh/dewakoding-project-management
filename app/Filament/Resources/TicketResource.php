@@ -26,6 +26,7 @@ class TicketResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
     protected static ?string $navigationLabel = 'Tickets';
+    protected static ?string $navigationGroup = 'Project Management';
     
     public static function getEloquentQuery(): Builder
     {

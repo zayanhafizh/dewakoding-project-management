@@ -19,6 +19,7 @@ class Ticket extends Model
         'user_id',
         'due_date',
         'uuid',
+        'epic_id',
     ];
 
     protected $casts = [
