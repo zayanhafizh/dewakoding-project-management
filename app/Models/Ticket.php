@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ticket extends Model
 {
@@ -37,6 +38,16 @@ class Ticket extends Model
                 $ticket->uuid = "{$prefix}-{$randomString}";
             }
         });
+
+        static::updating(function ($ticket) {
+            if ($ticket->isDirty('ticket_status_id')) {
+                TicketHistory::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id' => auth()->id(),
+                    'ticket_status_id' => $ticket->ticket_status_id,
+                ]);
+            }
+        });
     }
 
     public function project(): BelongsTo
@@ -52,5 +63,10 @@ class Ticket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(TicketHistory::class)->orderBy('created_at', 'desc');
     }
 }
