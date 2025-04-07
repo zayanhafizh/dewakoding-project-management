@@ -32,7 +32,7 @@ class TicketResource extends Resource
     {
         $query = parent::getEloquentQuery();
         
-        if (!auth()->user()->hasRole(['super_admin', 'admin'])) {
+        if (!auth()->user()->hasRole(['super_admin'])) {
             $query->where('user_id', auth()->id());
         }
         
@@ -48,14 +48,19 @@ class TicketResource extends Resource
             ->schema([
                 Forms\Components\Select::make('project_id')
                     ->label('Project')
-                    ->relationship('project', 'name')
+                    ->options(function () {
+                        if (auth()->user()->hasRole(['super_admin'])) {
+                            return Project::pluck('name', 'id')->toArray();
+                        }
+                        
+                        return auth()->user()->projects()->pluck('name', 'projects.id')->toArray();
+                    })
                     ->default($projectId)
                     ->required()
                     ->searchable()
                     ->preload()
                     ->live()
                     ->afterStateUpdated(function (callable $set) {
-                        // Reset status dan assignee ketika project berubah
                         $set('ticket_status_id', null);
                         $set('user_id', null);
                     }),
@@ -93,21 +98,15 @@ class TicketResource extends Resource
                         
                         $project = Project::find($projectId);
                         if (!$project) return [];
-                        
-                        return $project->members()->pluck('name', 'users.id')->toArray();
+                        return $project->members()
+                            ->select('users.id', 'users.name')
+                            ->pluck('users.name', 'users.id')
+                            ->toArray();
                     })
                     ->default(function () {
-                        if (!auth()->user()->hasRole(['super_admin', 'admin'])) {
-                            return auth()->id();
-                        }
-                        return null;
+                        return auth()->id();
                     })
-                    ->disabled(function () {
-                        return !auth()->user()->hasRole(['super_admin', 'admin']);
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->nullable()
+                    ->required()
                     ->helperText('Only project members can be assigned to tickets'),
                     
                 Forms\Components\DatePicker::make('due_date')
@@ -165,10 +164,15 @@ class TicketResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('project_id')
                     ->label('Project')
-                    ->relationship('project', 'name')
+                    ->options(function () {
+                        if (auth()->user()->hasRole(['super_admin'])) {
+                            return Project::pluck('name', 'id')->toArray();
+                        }
+                        
+                        return auth()->user()->projects()->pluck('name', 'projects.id')->toArray();
+                    })
                     ->searchable()
-                    ->preload()
-                    ->visible(auth()->user()->hasRole(['super_admin', 'admin'])),
+                    ->preload(),
                     
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status')
@@ -180,8 +184,7 @@ class TicketResource extends Resource
                     ->label('Assignee')
                     ->relationship('assignee', 'name')
                     ->searchable()
-                    ->preload()
-                    ->visible(auth()->user()->hasRole(['super_admin', 'admin'])),
+                    ->preload(),
                     
                 Tables\Filters\Filter::make('due_date')
                     ->form([
@@ -207,7 +210,7 @@ class TicketResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(auth()->user()->hasRole(['super_admin', 'admin'])),
+                        ->visible(auth()->user()->hasRole(['super_admin'])),
                     Tables\Actions\BulkAction::make('updateStatus')
                         ->label('Update Status')
                         ->icon('heroicon-o-arrow-path')
@@ -215,7 +218,6 @@ class TicketResource extends Resource
                             Forms\Components\Select::make('ticket_status_id')
                                 ->label('Status')
                                 ->options(function () {
-                                    // Get the first ticket to determine the project
                                     $firstTicket = Ticket::find(request('records')[0] ?? null);
                                     if (!$firstTicket) return [];
                                     
@@ -225,7 +227,7 @@ class TicketResource extends Resource
                                 })
                                 ->required(),
                         ])
-                        ->action(function (array $data, $records) {
+                        ->action(function (array $data, Collection $records) {
                             foreach ($records as $record) {
                                 $record->update([
                                     'ticket_status_id' => $data['ticket_status_id'],
