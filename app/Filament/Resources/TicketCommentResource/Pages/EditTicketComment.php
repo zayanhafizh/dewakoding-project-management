@@ -27,7 +27,7 @@ class EditTicketComment extends EditRecord
     {
         $data['user_id'] = $record->user_id;
         
-        if (!auth()->user()->hasRole(['super_admin', 'admin']) && $record->user_id !== auth()->id()) {
+        if (!auth()->user()->hasRole(['super_admin']) && $record->user_id !== auth()->id()) {
             Notification::make()
                 ->title('You do not have permission to edit this comment')
                 ->danger()
@@ -63,7 +63,7 @@ class EditTicketComment extends EditRecord
     {
         parent::mount($record);
         
-        if (!auth()->user()->hasRole(['super_admin', 'admin']) && $this->record->user_id !== auth()->id()) {
+        if (!auth()->user()->hasRole(['super_admin']) && $this->record->user_id !== auth()->id()) {
             Notification::make()
                 ->title('You do not have permission to edit this comment')
                 ->danger()

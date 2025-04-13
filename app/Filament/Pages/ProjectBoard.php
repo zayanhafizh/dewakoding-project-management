@@ -36,7 +36,7 @@ class ProjectBoard extends Page
     
     public function mount(): void
     {
-        if (auth()->user()->hasRole(['super_admin', 'admin'])) {
+        if (auth()->user()->hasRole(['super_admin'])) {
             $this->projects = Project::all();
         } else {
             $this->projects = auth()->user()->projects;
@@ -143,7 +143,7 @@ class ProjectBoard extends Page
             Action::make('new_ticket')
                 ->label('New Ticket')
                 ->icon('heroicon-m-plus')
-                ->visible(fn () => $this->selectedProject !== null && auth()->user()->hasRole(['super_admin', 'admin']))
+                ->visible(fn () => $this->selectedProject !== null && auth()->user()->hasRole(['super_admin']))
                 ->url(fn (): string => TicketResource::getUrl('create', [
                     'project_id' => $this->selectedProject?->id,
                     'ticket_status_id' => $this->selectedProject?->ticketStatuses->first()?->id
@@ -160,7 +160,7 @@ class ProjectBoard extends Page
     {
         if (!$ticket) return false;
         
-        return auth()->user()->hasRole(['super_admin', 'admin']) 
+        return auth()->user()->hasRole(['super_admin']) 
             || $ticket->user_id === auth()->id();
     }
     
@@ -168,7 +168,7 @@ class ProjectBoard extends Page
     {
         if (!$ticket) return false;
         
-        return auth()->user()->hasRole(['super_admin', 'admin']) 
+        return auth()->user()->hasRole(['super_admin']) 
             || $ticket->user_id === auth()->id();
     }
     
@@ -176,7 +176,7 @@ class ProjectBoard extends Page
     {
         if (!$ticket) return false;
         
-        return auth()->user()->hasRole(['super_admin', 'admin']) 
+        return auth()->user()->hasRole(['super_admin']) 
             || $ticket->user_id === auth()->id();
     }
 }

@@ -19,7 +19,7 @@
                                         {{ $comment->created_at->diffForHumans() }}
                                     </div>
                                     
-                                    @if(auth()->user()->hasRole(['super_admin', 'admin']) || $comment->user_id === auth()->id())
+                                    @if(auth()->user()->hasRole(['super_admin']) || $comment->user_id === auth()->id())
                                         <div class="flex gap-x-1">
                                             <!-- Edit Button -->
                                             <a

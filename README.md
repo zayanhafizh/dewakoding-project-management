@@ -2,6 +2,7 @@
 
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-1.jpeg)
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-4.jpeg)
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-5.jpeg)
 
 A Laravel Filament 3 application for managing projects with ticket management and status tracking.
 
@@ -12,6 +13,9 @@ A Laravel Filament 3 application for managing projects with ticket management an
 - Customizable ticket statuses with color coding
 - Ticket management with assignees and due dates
 - Unique ticket identifiers (PROJECT-XXXXXX format)
+- Epic management for organizing tickets into larger initiatives
+- Comment system for tickets to facilitate team discussions
+- Kanban board view for visualizing ticket progress
 
 ## Requirements
 
@@ -21,6 +25,8 @@ A Laravel Filament 3 application for managing projects with ticket management an
 - Composer
 
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-2.jpeg)
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-6.jpeg)
+
 
 ## Installation
 
@@ -57,18 +63,23 @@ A Laravel Filament 3 application for managing projects with ticket management an
    php artisan migrate
    ```
 
-6. Create a Filament admin user:
+6. Create storage link for file uploads
+   ```
+   php artisan storage:link
+   ```
+
+7. Create a Filament admin user:
    ```
    php artisan make:filament-user
    ```
-7. Activate Role & Permission
+8. Activate Role & Permission
    ```
    php artisan shield:setup
    php artisan shield:install
    php artisan shield:super-admin
    ```
 
-8. Start the development server:
+9. Start the development server:
    ```
    php artisan serve
    ```
@@ -82,20 +93,41 @@ A Laravel Filament 3 application for managing projects with ticket management an
 5. Create and customize ticket statuses
 6. Add tickets and assign to team members
 
-## Project Structure
+## Main Features
 
-### Models
-- **Project**: Core project entity with ticket prefix and description
-- **User**: Extended Laravel user model for team members
-- **TicketStatus**: Configurable status columns for tickets
-- **Ticket**: Task cards with relationships to status and assignee
+### Board View
 
-### Filament Resources
-- **ProjectResource**: CRUD for projects with relation managers
-- **UserResource**: User management with secure password handling
-- **TicketsRelationManager**: Manages tickets within projects
-- **TicketStatusesRelationManager**: Manages ticket status options
-- **MembersRelationManager**: Handles team membership
+The Board View offers a familiar kanban-style interface for ticket management:
+
+- Drag-and-drop tickets between status columns
+- Customize columns to match your team's process
+- Quick-edit functionality for updating tickets directly from the board
+
+### Timeline View
+
+The Timeline feature provides a chronological perspective of your project work:
+
+- Visualize project roadmap with start and end dates
+- Track milestone completion across time periods
+- Easily identify scheduling conflicts or resource bottlenecks
+
+### Epic Management
+
+Epics help organize related tickets into larger initiatives:
+
+- Group tickets by feature, release, or business objective
+- Track progress across multiple tickets
+- Set start and end dates for planning purposes
+- Visualize which tickets belong to which initiatives
+
+### Ticket Comments
+
+The comment system enhances team collaboration:
+
+- Team members can discuss tickets directly in the application
+- All comments are timestamped and attributed to users
+- Supports rich text formatting for improved readability
+- Enables better context sharing and decision documentation
 
 ## License
 

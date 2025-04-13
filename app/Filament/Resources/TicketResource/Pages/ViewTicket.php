@@ -28,7 +28,7 @@ class ViewTicket extends ViewRecord
     {
         $ticket = $this->getRecord();
         $project = $ticket->project;
-        $canComment = auth()->user()->hasRole(['super_admin', 'admin']) 
+        $canComment = auth()->user()->hasRole(['super_admin']) 
             || $project->members()->where('users.id', auth()->id())->exists();
         
         return [
@@ -36,7 +36,7 @@ class ViewTicket extends ViewRecord
                 ->visible(function () {
                     $ticket = $this->getRecord();
                     
-                    return auth()->user()->hasRole(['super_admin', 'admin']) 
+                    return auth()->user()->hasRole(['super_admin']) 
                         || $ticket->user_id === auth()->id();
                 }),
                 
@@ -83,7 +83,7 @@ class ViewTicket extends ViewRecord
         }
         
         // Check permissions
-        if (!auth()->user()->hasRole(['super_admin', 'admin']) && $comment->user_id !== auth()->id()) {
+        if (!auth()->user()->hasRole(['super_admin']) && $comment->user_id !== auth()->id()) {
             Notification::make()
                 ->title('You do not have permission to edit this comment')
                 ->danger()
@@ -277,7 +277,7 @@ class ViewTicket extends ViewRecord
                     }
                     
                     // Check permissions
-                    if (!auth()->user()->hasRole(['super_admin', 'admin']) && $comment->user_id !== auth()->id()) {
+                    if (!auth()->user()->hasRole(['super_admin']) && $comment->user_id !== auth()->id()) {
                         Notification::make()
                             ->title('You do not have permission to edit this comment')
                             ->danger()

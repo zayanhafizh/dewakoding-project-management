@@ -30,7 +30,7 @@ class TicketTimeline extends Page
     {
         $user = Auth::user();
         
-        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+        if ($user->hasRole('super_admin')) {
             $this->projects = Project::all();
         } else {
             $this->projects = $user->projects;
