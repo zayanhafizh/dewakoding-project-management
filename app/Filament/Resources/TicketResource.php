@@ -138,6 +138,7 @@ class TicketResource extends Resource
                     ->label('Status')
                     ->badge()
                     ->color(fn($record) => match ($record->status?->name) {
+                        'Backlog' => 'gray',
                         'To Do' => 'warning',
                         'In Progress' => 'info',
                         'Review' => 'primary',

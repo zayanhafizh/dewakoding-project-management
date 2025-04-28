@@ -15,6 +15,7 @@ class CreateProject extends CreateRecord
         
         if ($createDefaultStatuses) {
             $defaultStatuses = [
+                ['name' => 'Backlog', 'color' => '#6B7280'],
                 ['name' => 'To Do', 'color' => '#F59E0B'],
                 ['name' => 'In Progress', 'color' => '#3B82F6'],
                 ['name' => 'Review', 'color' => '#8B5CF6'],
