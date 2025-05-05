@@ -5,18 +5,17 @@
         <x-filament::section>
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ $selectedProject ? $selectedProject->name : 'Pilih Project' }}
+                    {{ $selectedProject ? $selectedProject->name : 'Select Project' }}
                 </h2>
                 
                 <div>
                     <x-filament::input.wrapper>
                         <x-filament::input.select
-                            wire:model.live="selectedProject"
-                            wire:change="selectProject($event.target.value)"
+                            wire:model.live="selectedProjectId"
                         >
-                            <option value="">Pilih Project</option>
+                            <option value="">Select Project</option>
                             @foreach($projects as $project)
-                                <option value="{{ $project->id }}" {{ $selectedProject && $selectedProject->id == $project->id ? 'selected' : '' }}>
+                                <option value="{{ $project->id }}" {{ $selectedProjectId == $project->id ? 'selected' : '' }}>
                                     {{ $project->name }}
                                 </option>
                             @endforeach
@@ -34,13 +33,28 @@
             @ticket-moved.window="init()"
             @ticket-updated.window="init()"
             @refresh-board.window="init()"
-            class="overflow-x-auto pb-6"
+            class="overflow-x-auto pb-6 relative"
             id="board-container"
+            style="max-width: calc(100vw - 2rem);"
         >
-            <div class="flex gap-4 min-w-full">
+            <!-- Shadow indicator untuk scroll kanan -->
+            <div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-100 dark:from-gray-800 to-transparent pointer-events-none z-10"
+                 x-data="{ visible: false }"
+                 x-init="$nextTick(() => { 
+                     const container = document.getElementById('board-container');
+                     visible = container.scrollWidth > container.clientWidth;
+                     container.addEventListener('scroll', () => {
+                         visible = container.scrollLeft + container.clientWidth < container.scrollWidth;
+                     });
+                 })"
+                 x-show="visible"
+            ></div>
+
+            <div class="inline-flex gap-4 pb-2">
                 @foreach ($ticketStatuses as $status)
                     <div 
-                        class="status-column flex-1 min-w-[300px] rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900"
+                        class="status-column rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900"
+                        style="width: calc((100vw - 6rem) / 4);"
                         data-status-id="{{ $status->id }}"
                     >
                         <div class="px-4 py-3 rounded-t-xl bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -120,8 +134,14 @@
             </div>
         </div>
     @else
-        <div class="flex items-center justify-center h-40 text-gray-500 dark:text-gray-400">
-            Please select a project to view the board
+        <div class="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 gap-4">
+            <div class="flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 p-6">
+                <x-heroicon-o-view-columns class="w-16 h-16 text-gray-400 dark:text-gray-500" />
+            </div>
+            <h2 class="text-xl font-medium text-gray-600 dark:text-gray-300">Please select a project first</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Select a project from the dropdown above to view the board
+            </p>
         </div>
     @endif
     

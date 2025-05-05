@@ -17,6 +17,7 @@ use App\Models\Ticket;
 use App\Models\TicketComment;
 use Filament\Forms;
 use Filament\Actions\Action;
+use App\Filament\Pages\ProjectBoard;
 
 class ViewTicket extends ViewRecord
 {
@@ -63,10 +64,11 @@ class ViewTicket extends ViewRecord
                 })
                 ->visible($canComment),
                 
-            Actions\Action::make('back')
+            
+            Action::make('back')
                 ->label('Back to Board')
                 ->color('gray')
-                ->url(fn () => route('filament.admin.pages.project-board')),
+                ->url(fn () => ProjectBoard::getUrl(['project_id' => $this->record->project_id])),
         ];
     }
     

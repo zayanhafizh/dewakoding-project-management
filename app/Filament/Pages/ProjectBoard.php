@@ -28,13 +28,18 @@ class ProjectBoard extends Page
     protected static ?string $navigationGroup = 'Project Visualization';
     
     protected static ?int $navigationSort = 2;
-    
+
+    protected static ?string $slug = 'project-board/{project_id?}';
+
     public ?Project $selectedProject = null;
     public Collection $projects;
     public Collection $ticketStatuses;
     public ?Ticket $selectedTicket = null;
+    public ?int $selectedProjectId = null;
+
     
-    public function mount(): void
+    
+    public function mount($project_id = null): void
     {
         if (auth()->user()->hasRole(['super_admin'])) {
             $this->projects = Project::all();
@@ -42,19 +47,45 @@ class ProjectBoard extends Page
             $this->projects = auth()->user()->projects;
         }
         
-        if ($this->projects->isNotEmpty()) {
-            $this->selectProject($this->projects->first()->id);
+        if ($project_id && $this->projects->contains('id', $project_id)) {
+            $this->selectedProjectId = (int) $project_id;
+            $this->selectedProject = Project::find($project_id);
+            $this->loadTicketStatuses();
+        } else if ($this->projects->isNotEmpty() && !is_null($project_id)) {
+            Notification::make()
+                ->title('Project tidak ditemukan')
+                ->danger()
+                ->send();
+            $this->redirect(static::getUrl());
         }
     }
+    
     
     public function selectProject(int $projectId): void
     {
         $this->selectedTicket = null;
         $this->ticketStatuses = collect();
-        
+        $this->selectedProjectId = $projectId;
         $this->selectedProject = Project::find($projectId);
         
-        $this->loadTicketStatuses();
+        if ($this->selectedProject) {
+            $url = static::getUrl(['project_id' => $projectId]);
+            $this->redirect($url);
+            
+            $this->loadTicketStatuses();
+        }
+    }
+
+    public function updatedSelectedProjectId($value): void
+    {
+        if ($value) {
+            $this->selectProject((int) $value);
+        } else {
+            $this->selectedProject = null;
+            $this->ticketStatuses = collect();
+            
+            $this->redirect(static::getUrl());
+        }
     }
     
     public function loadTicketStatuses(): void

@@ -5,7 +5,7 @@
             <x-filament::section>
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-                        {{ $projectId ? $projects->firstWhere('id', $projectId)->name : 'Pilih Project' }}
+                        {{ $projectId ? $projects->firstWhere('id', $projectId)->name : 'Select Project' }}
                     </h2>
                     
                     <div>
@@ -13,7 +13,7 @@
                             <x-filament::input.select
                                 wire:model.live="projectId"
                             >
-                                <option value="">Pilih Project</option>
+                                <option value="">Select Project</option>
                                 @foreach($projects as $project)
                                     <option value="{{ $project->id }}" {{ $projectId == $project->id ? 'selected' : '' }}>
                                         {{ $project->name }}
