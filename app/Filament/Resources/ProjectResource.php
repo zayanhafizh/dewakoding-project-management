@@ -35,7 +35,7 @@ class ProjectResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Toggle::make('create_default_statuses')
                     ->label('Use Default Ticket Statuses')
-                    ->helperText('Create standard To Do, In Progress, Review, and Done statuses automatically')
+                    ->helperText('Create standard Backlog, To Do, In Progress, Review, and Done statuses automatically')
                     ->default(true)
                     ->dehydrated(false)
                     ->visible(fn ($livewire) => $livewire instanceof Pages\CreateProject)
