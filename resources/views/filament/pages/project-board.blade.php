@@ -57,10 +57,13 @@
                         style="width: calc((100vw - 6rem) / 4);"
                         data-status-id="{{ $status->id }}"
                     >
-                        <div class="px-4 py-3 rounded-t-xl bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                            <h3 class="font-medium text-gray-900 dark:text-white flex items-center justify-between">
+                        <div 
+                            class="px-4 py-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700"
+                            style="background-color: {{ $status->color ?? '#f3f4f6' }};"
+                        >
+                            <h3 class="font-medium flex items-center justify-between" style="color: white; text-shadow: 0px 0px 1px rgba(0,0,0,0.5);">
                                 <span>{{ $status->name }}</span>
-                                <span class="text-gray-500 dark:text-gray-400 text-sm">{{ $status->tickets->count() }}</span>
+                                <span class="text-sm opacity-80">{{ $status->tickets->count() }}</span>
                             </h3>
                         </div>
                         

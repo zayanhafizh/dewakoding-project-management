@@ -14,6 +14,8 @@ class TicketStatus extends Model
     protected $fillable = [
         'project_id',
         'name',
+        'sort_order',
+        'color'
     ];
 
     public function project(): BelongsTo

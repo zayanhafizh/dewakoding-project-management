@@ -98,7 +98,7 @@ class ProjectBoard extends Page
                 $query->with(['assignee', 'status'])
                     ->orderBy('created_at', 'desc');
             }])
-            ->orderBy('id')
+            ->orderBy('sort_order')
             ->get();
     }
 
