@@ -13,7 +13,7 @@ class TicketHistory extends Model
     protected $fillable = [
         'ticket_id',
         'user_id',
-        'ticket_status_id'
+        'ticket_status_id',
     ];
 
     public function ticket(): BelongsTo

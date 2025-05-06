@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
+use App\Filament\Resources\TicketResource\Pages\EditCommentModal;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
-use App\Filament\Resources\TicketResource\Pages\EditCommentModal;
 
 class AppServiceProvider extends ServiceProvider
 {

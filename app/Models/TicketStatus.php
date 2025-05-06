@@ -20,7 +20,7 @@ class TicketStatus extends Model
     {
         return $this->belongsTo(Project::class);
     }
-    
+
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);

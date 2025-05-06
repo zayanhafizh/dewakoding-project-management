@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Ticket extends Model
 {
@@ -34,7 +34,7 @@ class Ticket extends Model
                 $project = Project::find($ticket->project_id);
                 $prefix = $project ? $project->ticket_prefix : 'TKT';
                 $randomString = Str::upper(Str::random(6));
-                
+
                 $ticket->uuid = "{$prefix}-{$randomString}";
             }
         });

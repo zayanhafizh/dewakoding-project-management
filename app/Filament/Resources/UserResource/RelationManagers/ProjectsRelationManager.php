@@ -7,8 +7,6 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProjectsRelationManager extends RelationManager
 {
@@ -33,27 +31,27 @@ class ProjectsRelationManager extends RelationManager
                     ->label('Project Name')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('description')
                     ->label('Description')
                     ->limit(50)
                     ->searchable(),
-                    
+
                 Tables\Columns\TextColumn::make('ticket_prefix')
                     ->label('Ticket Prefix')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('tickets_count')
                     ->label('Tickets')
                     ->counts('tickets')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('members_count')
                     ->label('Members')
                     ->counts('members')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
