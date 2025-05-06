@@ -3,21 +3,19 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TicketCommentResource\Pages;
-use App\Filament\Resources\TicketCommentResource\RelationManagers;
 use App\Models\TicketComment;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TicketCommentResource extends Resource
 {
     protected static ?string $model = TicketComment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form

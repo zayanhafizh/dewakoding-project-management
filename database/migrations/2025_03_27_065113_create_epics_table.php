@@ -23,10 +23,10 @@ return new class extends Migration
 
         Schema::table('tickets', function (Blueprint $table) {
             $table->foreignId('epic_id')
-                  ->nullable()
-                  ->after('ticket_status_id')
-                  ->constrained()
-                  ->nullOnDelete();
+                ->nullable()
+                ->after('ticket_status_id')
+                ->constrained()
+                ->nullOnDelete();
         });
     }
 
@@ -35,7 +35,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-       Schema::table('tickets', function (Blueprint $table) {
+        Schema::table('tickets', function (Blueprint $table) {
             $table->dropConstrainedForeignId('epic_id');
         });
 

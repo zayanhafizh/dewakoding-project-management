@@ -12,7 +12,7 @@ class CreateProject extends CreateRecord
     protected function afterCreate(): void
     {
         $createDefaultStatuses = $this->data['create_default_statuses'] ?? true;
-        
+
         if ($createDefaultStatuses) {
             $defaultStatuses = [
                 ['name' => 'Backlog', 'color' => '#6B7280'],

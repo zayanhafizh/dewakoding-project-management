@@ -8,7 +8,6 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TicketsRelationManager extends RelationManager
 {
@@ -34,22 +33,22 @@ class TicketsRelationManager extends RelationManager
                     ->label('Ticket ID')
                     ->searchable()
                     ->copyable(),
-                
+
                 Tables\Columns\TextColumn::make('name')
                     ->label('Ticket Name')
                     ->searchable()
                     ->sortable()
                     ->limit(30),
-                
+
                 Tables\Columns\TextColumn::make('project.name')
                     ->label('Project')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('status.name')
                     ->label('Status')
                     ->badge()
-                    ->color(fn($record) => match ($record->status?->name) {
+                    ->color(fn ($record) => match ($record->status?->name) {
                         'To Do' => 'warning',
                         'In Progress' => 'info',
                         'Review' => 'primary',
@@ -57,12 +56,12 @@ class TicketsRelationManager extends RelationManager
                         default => 'gray',
                     })
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('due_date')
                     ->label('Due Date')
                     ->date()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -73,12 +72,12 @@ class TicketsRelationManager extends RelationManager
                     ->relationship('project', 'name')
                     ->searchable()
                     ->preload(),
-                    
+
                 Tables\Filters\SelectFilter::make('status')
                     ->relationship('status', 'name')
                     ->searchable()
                     ->preload(),
-                    
+
                 Tables\Filters\Filter::make('due_date')
                     ->form([
                         Forms\Components\DatePicker::make('due_from'),
@@ -94,10 +93,10 @@ class TicketsRelationManager extends RelationManager
                                 $data['due_until'],
                                 fn (Builder $query, $date): Builder => $query->whereDate('due_date', '<=', $date),
                             );
-                    })
+                    }),
             ])
             ->headerActions([
-                
+
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
@@ -105,7 +104,7 @@ class TicketsRelationManager extends RelationManager
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    
+
                 ]),
             ]);
     }

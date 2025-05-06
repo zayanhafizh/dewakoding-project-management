@@ -11,9 +11,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Resources\Pages\Page;
-use Illuminate\Support\Facades\Auth;
 
 class ProjectResource extends Resource
 {
@@ -38,7 +35,7 @@ class ProjectResource extends Resource
                     ->helperText('Create standard Backlog, To Do, In Progress, Review, and Done statuses automatically')
                     ->default(true)
                     ->dehydrated(false)
-                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateProject)
+                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateProject),
             ]);
     }
 
@@ -93,15 +90,15 @@ class ProjectResource extends Resource
         return [
             'index' => Pages\ListProjects::route('/'),
             'create' => Pages\CreateProject::route('/create'),
-            'edit' => Pages\EditProject::route('/{record}/edit')
+            'edit' => Pages\EditProject::route('/{record}/edit'),
         ];
     }
-    
+
     // Add this method to show all projects for super_admin, but only member projects for regular users
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         // Check if the current user has the super_admin role
         // Adjust this condition based on how you check for roles in your application
         $userIsSuperAdmin = auth()->user() && (
@@ -110,14 +107,14 @@ class ProjectResource extends Resource
             // Or if using a simple role column
             || (isset(auth()->user()->role) && auth()->user()->role === 'super_admin')
         );
-        
-        if (!$userIsSuperAdmin) {
+
+        if (! $userIsSuperAdmin) {
             // If not a super_admin, only show projects where user is a member
             $query->whereHas('members', function (Builder $query) {
                 $query->where('user_id', auth()->id());
             });
         }
-        
+
         return $query;
     }
 }
