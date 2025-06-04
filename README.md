@@ -146,6 +146,9 @@ They will be installed automatically when you run `composer install` and `npm in
 #### Development Mode
 
 To run the application in development mode with auto-reloading, simply use the provided composer script:
+   ```
+   php artisan octane:start --server=frankenphp --watch
+   ```
 
 ## License
 

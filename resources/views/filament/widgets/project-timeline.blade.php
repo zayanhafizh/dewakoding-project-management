@@ -17,7 +17,7 @@
                                 </div>
                                 
                                 <div class="text-right text-sm text-gray-500">
-                                {{ $project['start_date'] }} - {{ $project['end_date'] }} | {{ $project['progress_percent'] }}% completed 
+                                {{ $project['start_date'] }} - {{ $project['end_date'] }}
                                 </div>
                             </div>
                             
@@ -38,7 +38,7 @@
                                     @endif
                                     
                                     @if($project['remaining_days'] > 0)
-                                        <span class="ml-auto text-gray-700">{{ $project['remaining_days'] }} days remaining</span>
+                                        <span class="ml-auto text-gray-900">{{ $project['remaining_days'] }} days remaining</span>
                                     @elseif($project['remaining_days'] <= 0 && $project['progress_percent'] < 100)
                                         <span class="ml-auto text-red-700">{{ abs($project['remaining_days']) }} days overdue</span>
                                     @endif

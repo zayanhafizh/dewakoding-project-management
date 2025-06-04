@@ -10,6 +10,10 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
+use App\Filament\Actions\ExportTicketsAction;
+use App\Exports\TicketsExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectBoard extends Page
 {
@@ -185,7 +189,11 @@ class ProjectBoard extends Page
             Action::make('refresh_board')
                 ->label('Refresh Board')
                 ->icon('heroicon-m-arrow-path')
-                ->action('refreshBoard'),
+                ->action('refreshBoard')
+                ->color('warning'),
+            
+            ExportTicketsAction::make()
+                ->visible(fn () => $this->selectedProject !== null),
         ];
     }
 
@@ -217,5 +225,81 @@ class ProjectBoard extends Page
 
         return auth()->user()->hasRole(['super_admin'])
             || $ticket->user_id === auth()->id();
+    }
+
+
+    public function exportTickets(array $selectedColumns): void
+    {
+        if (empty($selectedColumns)) {
+            Notification::make()
+                ->title('Export Failed')
+                ->body('Please select at least one column to export.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $tickets = collect();
+        
+        if ($this->selectedProject) {
+            $tickets = $this->selectedProject->tickets()
+                ->with(['assignee', 'status', 'project', 'epic'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } elseif ($this->ticketStatuses->isNotEmpty()) {
+            $ticketIds = $this->ticketStatuses->flatMap(function ($status) {
+                return $status->tickets->pluck('id');
+            });
+            
+            $tickets = Ticket::whereIn('id', $ticketIds)
+                ->with(['assignee', 'status', 'project', 'epic'])
+                ->orderBy('created_at', 'asc')
+                ->get();
+        }
+
+        if ($tickets->isEmpty()) {
+            Notification::make()
+                ->title('Export Failed')
+                ->body('No tickets found to export.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        try {
+            $fileName = 'tickets_' . ($this->selectedProject?->name ?? 'export') . '_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+            $fileName = \Illuminate\Support\Str::slug($fileName, '_') . '.xlsx';
+            $export = new TicketsExport($tickets, $selectedColumns);
+            Excel::store($export, 'exports/' . $fileName, 'public');
+            $downloadUrl = asset('storage/exports/' . $fileName);
+            $this->js("
+                fetch('{$downloadUrl}')
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = '{$fileName}';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    });
+            ");
+            
+            Notification::make()
+                ->title('Export Successful')
+                ->body('Your Excel file is being downloaded.')
+                ->success()
+                ->send();
+            
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Export Failed')
+                ->body('An error occurred while exporting: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 }
