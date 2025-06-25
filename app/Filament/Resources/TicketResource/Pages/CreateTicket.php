@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TicketResource\Pages;
 use App\Filament\Resources\TicketResource;
 use App\Models\Project;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 
 class CreateTicket extends CreateRecord
@@ -13,27 +14,77 @@ class CreateTicket extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if (empty($data['user_id'])) {
-            $data['user_id'] = auth()->id();
-        }
+        // Set created_by to current user
+        $data['created_by'] = auth()->id();
 
         return $data;
     }
 
     protected function handleRecordCreation(array $data): Model
     {
-        if (! empty($data['user_id']) && ! empty($data['project_id'])) {
+        // Create the ticket first
+        $ticket = parent::handleRecordCreation($data);
+
+        // Handle assignees validation and assignment
+        if (!empty($data['assignees']) && !empty($data['project_id'])) {
             $project = Project::find($data['project_id']);
-            $isMember = $project?->members()->where('users.id', $data['user_id'])->exists();
-
-            if (! $isMember) {
-                $data['user_id'] = null;
-
-                $this->notify('warning', 'Selected assignee is not a member of this project. Assignee has been reset.');
+            
+            if ($project) {
+                $validAssignees = [];
+                $invalidAssignees = [];
+                
+                foreach ($data['assignees'] as $userId) {
+                    $isMember = $project->members()->where('users.id', $userId)->exists();
+                    
+                    if ($isMember) {
+                        $validAssignees[] = $userId;
+                    } else {
+                        $invalidAssignees[] = $userId;
+                    }
+                }
+                
+                // Assign only valid users
+                if (!empty($validAssignees)) {
+                    $ticket->assignees()->sync($validAssignees);
+                }
+                
+                // Show warning if some users were invalid
+                if (!empty($invalidAssignees)) {
+                    Notification::make()
+                        ->warning()
+                        ->title('Some assignees removed')
+                        ->body('Some selected users are not members of this project and have been removed from assignees.')
+                        ->send();
+                }
+                
+                // If no valid assignees, assign current user if they're a member
+                if (empty($validAssignees)) {
+                    $currentUserIsMember = $project->members()->where('users.id', auth()->id())->exists();
+                    
+                    if ($currentUserIsMember) {
+                        $ticket->assignees()->sync([auth()->id()]);
+                        
+                        Notification::make()
+                            ->info()
+                            ->title('Auto-assigned')
+                            ->body('No valid assignees found. You have been automatically assigned to this ticket.')
+                            ->send();
+                    }
+                }
+            }
+        } else {
+            // If no assignees provided, try to assign current user
+            if (!empty($data['project_id'])) {
+                $project = Project::find($data['project_id']);
+                $currentUserIsMember = $project?->members()->where('users.id', auth()->id())->exists();
+                
+                if ($currentUserIsMember) {
+                    $ticket->assignees()->sync([auth()->id()]);
+                }
             }
         }
 
-        return parent::handleRecordCreation($data);
+        return $ticket;
     }
 
     protected function getRedirectUrl(): string
@@ -45,5 +96,13 @@ class CreateTicket extends CreateRecord
         }
 
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getCreatedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Ticket created')
+            ->body('The ticket has been created successfully.');
     }
 }

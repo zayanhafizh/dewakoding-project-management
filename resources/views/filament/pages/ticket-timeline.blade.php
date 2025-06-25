@@ -1,17 +1,18 @@
 <x-filament-panels::page>
     <div class="space-y-6">
         <!-- Project Filter -->
-        <div class="mb-6">
+       <div class="mb-6">
             <x-filament::section>
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <h2 class="text-lg font-medium text-gray-900 dark:text-white">
                         {{ $selectedProject ? $selectedProject->name : 'Select Project' }}
                     </h2>
                     
-                    <div>
+                    <div class="w-full sm:w-auto">
                         <x-filament::input.wrapper>
                             <x-filament::input.select
                                 wire:model.live="projectId"
+                                class="w-full"
                             >
                                 <option value="">Select Project</option>
                                 @foreach($projects as $project)

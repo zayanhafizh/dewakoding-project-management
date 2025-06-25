@@ -31,7 +31,10 @@ class TicketResource extends Resource
 
         if (! auth()->user()->hasRole(['super_admin'])) {
             $query->where(function ($query) {
-                $query->where('user_id', auth()->id())
+                $query->whereHas('assignees', function ($query) {
+                        $query->where('users.id', auth()->id());
+                    })
+                    ->orWhere('created_by', auth()->id())
                     ->orWhereHas('project.members', function ($query) {
                         $query->where('users.id', auth()->id());
                     });
@@ -64,7 +67,7 @@ class TicketResource extends Resource
                     ->live()
                     ->afterStateUpdated(function (callable $set) {
                         $set('ticket_status_id', null);
-                        $set('user_id', null);
+                        $set('assignees', []);
                         $set('epic_id', null);
                     }),
 
@@ -84,6 +87,7 @@ class TicketResource extends Resource
                     ->required()
                     ->searchable()
                     ->preload(),
+
                 Forms\Components\Select::make('epic_id')
                     ->label('Epic')
                     ->options(function (callable $get) {
@@ -112,33 +116,45 @@ class TicketResource extends Resource
                     ->fileAttachmentsDirectory('attachments')
                     ->columnSpanFull(),
 
-                Forms\Components\Select::make('user_id')
-                    ->label('Assignee')
-                    ->options(function ($get) {
-                        $projectId = $get('project_id');
-                        if (! $projectId) {
-                            return [];
+                // Multi-user assignment
+                Forms\Components\Select::make('assignees')
+                    ->label('Assigned to')
+                    ->multiple()
+                    ->relationship(
+                        name: 'assignees',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query, callable $get) {
+                            $projectId = $get('project_id');
+                            if (! $projectId) {
+                                return $query->whereRaw('1 = 0'); // Return empty result
+                            }
+
+                            $project = Project::find($projectId);
+                            if (! $project) {
+                                return $query->whereRaw('1 = 0'); // Return empty result
+                            }
+
+                            // Only show project members
+                            return $query->whereHas('projects', function ($query) use ($projectId) {
+                                $query->where('projects.id', $projectId);
+                            });
                         }
-
-                        $project = Project::find($projectId);
-                        if (! $project) {
-                            return [];
-                        }
-
-                        return $project->members()
-                            ->select('users.id', 'users.name')
-                            ->pluck('users.name', 'users.id')
-                            ->toArray();
-                    })
-                    ->default(function () {
-                        return auth()->id();
-                    })
-                    ->required()
-                    ->helperText('Only project members can be assigned to tickets'),
-
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->helperText('Select multiple users to assign this ticket to. Only project members can be assigned.')
+                    ->hidden(fn (callable $get): bool => !$get('project_id'))
+                    ->live(),
                 Forms\Components\DatePicker::make('due_date')
                     ->label('Due Date')
                     ->nullable(),
+
+                // Show created by field in edit mode
+                Forms\Components\Select::make('created_by')
+                    ->label('Created By')
+                    ->relationship('creator', 'name')
+                    ->disabled()
+                    ->hiddenOn('create'),
             ]);
     }
 
@@ -166,10 +182,20 @@ class TicketResource extends Resource
                     ->badge()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('assignee.name')
-                    ->label('Assignee')
-                    ->sortable()
+                // Display multiple assignees
+                Tables\Columns\TextColumn::make('assignees.name')
+                    ->label('Assign To')
+                    ->badge()
+                    ->separator(',')
+                    ->limitList(2)
+                    ->expandableLimitedList()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('creator.name')
+                    ->label('Created By')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('due_date')
                     ->label('Due Date')
@@ -232,10 +258,19 @@ class TicketResource extends Resource
                     })
                     ->searchable()
                     ->preload(),
-            
-                Tables\Filters\SelectFilter::make('user_id')
+
+                // Filter by assignees
+                Tables\Filters\SelectFilter::make('assignees')
                     ->label('Assignee')
-                    ->relationship('assignee', 'name')
+                    ->relationship('assignees', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload(),
+
+                // Filter by creator
+                Tables\Filters\SelectFilter::make('created_by')
+                    ->label('Created By')
+                    ->relationship('creator', 'name')
                     ->searchable()
                     ->preload(),
             
@@ -256,6 +291,7 @@ class TicketResource extends Resource
                             );
                     }),
             ])
+            ->defaultSort('created_at', 'desc')
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
@@ -264,6 +300,7 @@ class TicketResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(auth()->user()->hasRole(['super_admin'])),
+
                     Tables\Actions\BulkAction::make('updateStatus')
                         ->label('Update Status')
                         ->icon('heroicon-o-arrow-path')
@@ -287,6 +324,53 @@ class TicketResource extends Resource
                                 $record->update([
                                     'ticket_status_id' => $data['ticket_status_id'],
                                 ]);
+                            }
+                        }),
+
+                    // New bulk action for assigning users
+                    Tables\Actions\BulkAction::make('assignUsers')
+                        ->label('Assign Users')
+                        ->icon('heroicon-o-user-plus')
+                        ->form([
+                            Forms\Components\Select::make('assignees')
+                                ->label('Assignees')
+                                ->multiple()
+                                ->options(function () {
+                                    $firstTicket = Ticket::find(request('records')[0] ?? null);
+                                    if (! $firstTicket) {
+                                        return [];
+                                    }
+
+                                    $project = $firstTicket->project;
+                                    if (! $project) {
+                                        return [];
+                                    }
+
+                                    return $project->members()
+                                        ->select('users.id', 'users.name')
+                                        ->pluck('users.name', 'users.id')
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+                            
+                            Forms\Components\Radio::make('assignment_mode')
+                                ->label('Assignment Mode')
+                                ->options([
+                                    'replace' => 'Replace existing assignees',
+                                    'add' => 'Add to existing assignees',
+                                ])
+                                ->default('add')
+                                ->required(),
+                        ])
+                        ->action(function (array $data, Collection $records) {
+                            foreach ($records as $record) {
+                                if ($data['assignment_mode'] === 'replace') {
+                                    $record->assignees()->sync($data['assignees']);
+                                } else {
+                                    $record->assignees()->syncWithoutDetaching($data['assignees']);
+                                }
                             }
                         }),
                 ]),

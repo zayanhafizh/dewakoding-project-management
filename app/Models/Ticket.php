@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -17,10 +18,10 @@ class Ticket extends Model
         'ticket_status_id',
         'name',
         'description',
-        'user_id',
         'due_date',
         'uuid',
         'epic_id',
+        'created_by',
     ];
 
     protected $casts = [
@@ -36,6 +37,11 @@ class Ticket extends Model
                 $randomString = Str::upper(Str::random(6));
 
                 $ticket->uuid = "{$prefix}-{$randomString}";
+            }
+
+            // Set created_by jika belum di-set dan ada user yang login
+            if (empty($ticket->created_by) && auth()->id()) {
+                $ticket->created_by = auth()->id();
             }
         });
 
@@ -60,9 +66,16 @@ class Ticket extends Model
         return $this->belongsTo(TicketStatus::class, 'ticket_status_id');
     }
 
-    public function assignee(): BelongsTo
+    // Multi-user assignment relationship
+    public function assignees(): BelongsToMany
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsToMany(User::class, 'ticket_users');
+    }
+
+    // Creator relationship
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function histories(): HasMany
@@ -78,5 +91,26 @@ class Ticket extends Model
     public function epic(): BelongsTo
     {
         return $this->belongsTo(Epic::class);
+    }
+
+    // Helper methods
+    public function assignUser(User $user): void
+    {
+        $this->assignees()->syncWithoutDetaching($user->id);
+    }
+
+    public function unassignUser(User $user): void
+    {
+        $this->assignees()->detach($user->id);
+    }
+
+    public function assignUsers(array $userIds): void
+    {
+        $this->assignees()->sync($userIds);
+    }
+
+    public function isAssignedTo(User $user): bool
+    {
+        return $this->assignees()->where('user_id', $user->id)->exists();
     }
 }

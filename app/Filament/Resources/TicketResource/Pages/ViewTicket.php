@@ -38,7 +38,8 @@ class ViewTicket extends ViewRecord
                     $ticket = $this->getRecord();
 
                     return auth()->user()->hasRole(['super_admin'])
-                        || $ticket->user_id === auth()->id();
+                        || $ticket->created_by === auth()->id()
+                        || $ticket->assignees()->where('users.id', auth()->id())->exists();
                 }),
 
             Actions\Action::make('addComment')
@@ -167,8 +168,16 @@ class ViewTicket extends ViewRecord
                                             default => 'gray',
                                         }),
 
-                                    TextEntry::make('assignee.name')
-                                        ->label('Assignee'),
+                                    // FIXED: Multi-user assignees
+                                    TextEntry::make('assignees.name')
+                                        ->label('Assigned To')
+                                        ->badge()
+                                        ->separator(',')
+                                        ->default('Unassigned'),
+
+                                    TextEntry::make('creator.name')
+                                        ->label('Created By')
+                                        ->default('Unknown'),
 
                                     TextEntry::make('due_date')
                                         ->label('Due Date')
@@ -186,6 +195,10 @@ class ViewTicket extends ViewRecord
                                     TextEntry::make('updated_at')
                                         ->label('Updated At')
                                         ->dateTime(),
+
+                                    TextEntry::make('epic.name')
+                                        ->label('Epic')
+                                        ->default('No Epic'),
                                 ]),
                         ])->columnSpan(1),
                     ]),
@@ -198,6 +211,7 @@ class ViewTicket extends ViewRecord
                             ->html()
                             ->columnSpanFull(),
                     ]),
+
                 Section::make('Comments')
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->description('Discussion about this ticket')

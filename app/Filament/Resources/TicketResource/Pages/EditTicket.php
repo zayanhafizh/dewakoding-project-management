@@ -6,7 +6,7 @@ use App\Filament\Resources\TicketResource;
 use App\Models\Project;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Database\Eloquent\Model;
+use Filament\Notifications\Notification;
 
 class EditTicket extends EditRecord
 {
@@ -15,34 +15,61 @@ class EditTicket extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\ViewAction::make(),
             Actions\DeleteAction::make(),
         ];
     }
 
-    protected function handleRecordUpdate(Model $record, array $data): Model
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        if (! empty($data['user_id']) && ! empty($data['project_id'])) {
+        // Handle assignees validation before saving
+        if (!empty($data['assignees']) && !empty($data['project_id'])) {
             $project = Project::find($data['project_id']);
-            $isMember = $project?->members()->where('users.id', $data['user_id'])->exists();
-
-            if (! $isMember) {
-                $data['user_id'] = null;
-
-                $this->notify('warning', 'Selected assignee is not a member of this project. Assignee has been reset.');
+            
+            if ($project) {
+                $validAssignees = [];
+                $invalidAssignees = [];
+                
+                foreach ($data['assignees'] as $userId) {
+                    $isMember = $project->members()->where('users.id', $userId)->exists();
+                    
+                    if ($isMember) {
+                        $validAssignees[] = $userId;
+                    } else {
+                        $invalidAssignees[] = $userId;
+                    }
+                }
+                
+                // Update data with only valid assignees
+                $data['assignees'] = $validAssignees;
+                
+                // Show warning if some users were invalid
+                if (!empty($invalidAssignees)) {
+                    Notification::make()
+                        ->warning()
+                        ->title('Some assignees removed')
+                        ->body('Some selected users are not members of this project and have been removed from assignees.')
+                        ->send();
+                }
             }
         }
 
-        return parent::handleRecordUpdate($record, $data);
+        return $data;
     }
 
-    protected function getRedirectUrl(): string
+    protected function afterSave(): void
     {
-        $referer = request()->header('referer');
-
-        if ($referer && str_contains($referer, 'project-board-page')) {
-            return '/admin/project-board-page';
+        // Sync assignees after saving (since it's a many-to-many relationship)
+        if (isset($this->data['assignees']) && is_array($this->data['assignees'])) {
+            $this->record->assignees()->sync($this->data['assignees']);
         }
+    }
 
-        return $this->getResource()::getUrl('index');
+    protected function getSavedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Ticket updated')
+            ->body('The ticket has been updated successfully.');
     }
 }

@@ -62,21 +62,29 @@ class UserResource extends Resource
 
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Roles')
+                    ->badge()
+                    ->separator(',')
                     ->tooltip(fn (User $record): string => $record->roles->pluck('name')->join(', ') ?: 'No Roles')
                     ->sortable(),
 
-                // Jumlah project yang user terlibat sebagai member
                 Tables\Columns\TextColumn::make('projects_count')
                     ->label('Projects')
                     ->counts('projects')
                     ->tooltip(fn (User $record): string => $record->projects->pluck('name')->join(', ') ?: 'No Projects')
                     ->sortable(),
 
-                // Jumlah ticket yang di-assign ke user
-                Tables\Columns\TextColumn::make('tickets_count')
-                    ->label('Tickets')
-                    ->counts('tickets')
+                Tables\Columns\TextColumn::make('assigned_tickets_count')
+                    ->label('Assigned Tickets')
+                    ->counts('assignedTickets')
                     ->tooltip('Number of tickets assigned to this user')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('created_tickets_count')
+                    ->label('Created Tickets')
+                    ->getStateUsing(function (User $record): int {
+                        return $record->createdTickets()->count();
+                    })
+                    ->tooltip('Number of tickets created by this user')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('email_verified_at')
@@ -99,26 +107,73 @@ class UserResource extends Resource
                     ->label('Has Projects')
                     ->query(fn (Builder $query): Builder => $query->whereHas('projects')),
 
-                Tables\Filters\Filter::make('has_tickets')
-                    ->label('Has Tickets')
-                    ->query(fn (Builder $query): Builder => $query->whereHas('tickets')),
+                Tables\Filters\Filter::make('has_assigned_tickets')
+                    ->label('Has Assigned Tickets')
+                    ->query(fn (Builder $query): Builder => $query->whereHas('assignedTickets')),
+
+                Tables\Filters\Filter::make('has_created_tickets')
+                    ->label('Has Created Tickets')
+                    ->query(fn (Builder $query): Builder => $query->whereHas('createdTickets')),
+
+                // Filter by role
+                Tables\Filters\SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\Filter::make('email_unverified')
+                    ->label('Email Unverified')
+                    ->query(fn (Builder $query): Builder => $query->whereNull('email_verified_at')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    
+                    // NEW: Bulk action to assign role
+                    Tables\Actions\BulkAction::make('assignRole')
+                        ->label('Assign Role')
+                        ->icon('heroicon-o-shield-check')
+                        ->form([
+                            Forms\Components\Select::make('roles')
+                                ->label('Roles')
+                                ->relationship('roles', 'name')
+                                ->multiple()
+                                ->preload()
+                                ->searchable()
+                                ->required(),
+                            
+                            Forms\Components\Radio::make('role_mode')
+                                ->label('Assignment Mode')
+                                ->options([
+                                    'replace' => 'Replace existing roles',
+                                    'add' => 'Add to existing roles',
+                                ])
+                                ->default('add')
+                                ->required(),
+                        ])
+                        ->action(function (array $data, $records) {
+                            foreach ($records as $record) {
+                                if ($data['role_mode'] === 'replace') {
+                                    $record->roles()->sync($data['roles']);
+                                } else {
+                                    $record->roles()->syncWithoutDetaching($data['roles']);
+                                }
+                            }
+                        }),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
     {
         return [
             RelationManagers\ProjectsRelationManager::class,
-            RelationManagers\TicketsRelationManager::class,
         ];
     }
 
@@ -127,7 +182,7 @@ class UserResource extends Resource
         return [
             'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'edit' => Pages\EditUser::route('/{record}/edit')
         ];
     }
 

@@ -99,7 +99,7 @@ class ProjectBoard extends Page
 
         $this->ticketStatuses = $this->selectedProject->ticketStatuses()
             ->with(['tickets' => function ($query) {
-                $query->with(['assignee', 'status'])
+                 $query->with(['assignees', 'status'])
                     ->orderBy('created_at', 'desc');
             }])
             ->orderBy('sort_order')
@@ -136,7 +136,7 @@ class ProjectBoard extends Page
 
     public function showTicketDetails(int $ticketId): void
     {
-        $ticket = Ticket::with(['assignee', 'status', 'project'])->find($ticketId);
+        $ticket = Ticket::with(['assignees', 'status', 'project'])->find($ticketId);
 
         if (! $ticket) {
             Notification::make()
@@ -204,7 +204,8 @@ class ProjectBoard extends Page
         }
 
         return auth()->user()->hasRole(['super_admin'])
-            || $ticket->user_id === auth()->id();
+            || $ticket->user_id === auth()->id()
+            || $ticket->assignees()->where('users.id', auth()->id())->exists();
     }
 
     private function canEditTicket(?Ticket $ticket): bool
@@ -214,7 +215,8 @@ class ProjectBoard extends Page
         }
 
         return auth()->user()->hasRole(['super_admin'])
-            || $ticket->user_id === auth()->id();
+            || $ticket->user_id === auth()->id()
+            || $ticket->assignees()->where('users.id', auth()->id())->exists();
     }
 
     private function canManageTicket(?Ticket $ticket): bool
@@ -224,7 +226,8 @@ class ProjectBoard extends Page
         }
 
         return auth()->user()->hasRole(['super_admin'])
-            || $ticket->user_id === auth()->id();
+            || $ticket->user_id === auth()->id()
+            || $ticket->assignees()->where('users.id', auth()->id())->exists();
     }
 
 
@@ -243,7 +246,7 @@ class ProjectBoard extends Page
         
         if ($this->selectedProject) {
             $tickets = $this->selectedProject->tickets()
-                ->with(['assignee', 'status', 'project', 'epic'])
+                ->with(['assignees', 'status', 'project', 'epic'])
                 ->orderBy('created_at', 'desc')
                 ->get();
         } elseif ($this->ticketStatuses->isNotEmpty()) {
@@ -252,7 +255,7 @@ class ProjectBoard extends Page
             });
             
             $tickets = Ticket::whereIn('id', $ticketIds)
-                ->with(['assignee', 'status', 'project', 'epic'])
+                ->with(['assignees', 'status', 'project', 'epic'])
                 ->orderBy('created_at', 'asc')
                 ->get();
         }

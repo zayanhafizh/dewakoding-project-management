@@ -117,12 +117,21 @@
                                     @endif
                                     
                                     <div class="flex justify-between items-center mt-2">
-                                        @if ($ticket->assignee)
-                                            <div class="inline-flex items-center px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 gap-1 truncate">
-                                                <span class="w-4 h-4 rounded-full bg-primary-500 flex items-center justify-center text-xs text-white flex-shrink-0">
-                                                    {{ substr($ticket->assignee->name, 0, 1) }}
-                                                </span>
-                                                <span class="text-xs font-medium truncate">{{ $ticket->assignee->name }}</span>
+                                       @if ($ticket->assignees->isNotEmpty())
+                                            <div class="flex flex-wrap gap-1 max-w-[180px]">
+                                                @foreach($ticket->assignees->take(2) as $assignee)
+                                                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 gap-1">
+                                                        <span class="w-4 h-4 rounded-full bg-primary-500 flex items-center justify-center text-xs text-white flex-shrink-0">
+                                                            {{ substr($assignee->name, 0, 1) }}
+                                                        </span>
+                                                        <span class="text-xs font-medium truncate">{{ \Illuminate\Support\Str::limit($assignee->name, 8) }}</span>
+                                                    </div>
+                                                @endforeach
+                                                @if($ticket->assignees->count() > 2)
+                                                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
+                                                        <span class="text-xs font-medium">+{{ $ticket->assignees->count() - 2 }}</span>
+                                                    </div>
+                                                @endif
                                             </div>
                                         @else
                                             <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
