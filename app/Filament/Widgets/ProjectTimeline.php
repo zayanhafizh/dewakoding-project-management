@@ -6,17 +6,18 @@ use App\Models\Project;
 use Filament\Widgets\Widget;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class ProjectTimeline extends Widget
 {
+    use HasWidgetShield;
     protected static string $view = 'filament.widgets.project-timeline';
     
     protected int | string | array $columnSpan = 'full';
 
     static ?int $sort = 2;
     
-    // Property untuk filter
-    public string $filter = 'active'; // 'active' atau 'all'
+    public string $filter = 'active';
     
     public function getProjects()
     {
@@ -25,7 +26,6 @@ class ProjectTimeline extends Widget
             ->whereNotNull('end_date')
             ->orderBy('name');
             
-        // Filter berdasarkan status aktif atau semua
         if ($this->filter === 'active') {
             $query->where('end_date', '>=', Carbon::today());
         }
@@ -44,13 +44,11 @@ class ProjectTimeline extends Widget
         return $query->get();
     }
     
-    // Method untuk mengubah filter
     public function setFilter($filter)
     {
         $this->filter = $filter;
     }
     
-    // Method untuk mendapatkan jumlah total projects
     public function getTotalProjects()
     {
         $query = Project::query()
