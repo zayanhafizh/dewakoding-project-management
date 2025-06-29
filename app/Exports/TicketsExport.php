@@ -53,7 +53,7 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
     public function map($ticket): array
     {
         $row = [];
-        
+
         foreach ($this->selectedColumns as $column) {
             switch ($column) {
                 case 'uuid':
@@ -69,7 +69,7 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
                     $row[] = $ticket->status?->name ?? 'No Status';
                     break;
                 case 'assignee':
-                    $row[] = $ticket->assignee?->name ?? 'Unassigned';
+                    $row[] = $ticket->assignees->pluck('name')->implode(', ');;
                     break;
                 case 'project':
                     $row[] = $ticket->project?->name ?? 'No Project';
@@ -91,7 +91,7 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
                     break;
             }
         }
-        
+
         return $row;
     }
 
