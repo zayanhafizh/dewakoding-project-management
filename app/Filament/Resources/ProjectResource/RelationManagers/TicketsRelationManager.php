@@ -11,10 +11,16 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class TicketsRelationManager extends RelationManager
 {
     protected static string $relationship = 'tickets';
+
+    public static function getBadge(Model $ownerRecord, string $pageClass): ?string
+    {
+        return $ownerRecord->tickets_count ?? $ownerRecord->tickets()->count();
+    }
 
     public function form(Form $form): Form
     {

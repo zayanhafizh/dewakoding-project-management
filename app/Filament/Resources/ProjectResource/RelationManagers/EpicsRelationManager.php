@@ -7,10 +7,16 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class EpicsRelationManager extends RelationManager
 {
     protected static string $relationship = 'epics';
+
+    public static function getBadge(Model $ownerRecord, string $pageClass): ?string
+    {
+        return $ownerRecord->epics_count ?? $ownerRecord->epics()->count();
+    }
 
     public function form(Form $form): Form
     {

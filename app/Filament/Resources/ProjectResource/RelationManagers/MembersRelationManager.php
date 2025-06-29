@@ -6,10 +6,16 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class MembersRelationManager extends RelationManager
 {
     protected static string $relationship = 'members';
+
+    public static function getBadge(Model $ownerRecord, string $pageClass): ?string
+    {
+        return $ownerRecord->members_count ?? $ownerRecord->members()->count();
+    }
 
     public function form(Form $form): Form
     {

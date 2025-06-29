@@ -7,10 +7,16 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class TicketStatusesRelationManager extends RelationManager
 {
     protected static string $relationship = 'ticketStatuses';
+
+    public static function getBadge(Model $ownerRecord, string $pageClass): ?string
+    {
+        return $ownerRecord->ticket_statuses_count ?? $ownerRecord->ticketStatuses()->count();
+    }
 
     public function form(Form $form): Form
     {
