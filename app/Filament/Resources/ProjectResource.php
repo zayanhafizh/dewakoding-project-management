@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Actions\ImportTicketsAction;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers;
 use App\Models\Project;
@@ -11,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProjectResource extends Resource
 {
@@ -96,7 +98,7 @@ class ProjectResource extends Resource
                 // No toggle filter here
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

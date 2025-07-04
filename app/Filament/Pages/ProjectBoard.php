@@ -99,7 +99,7 @@ class ProjectBoard extends Page
 
         $this->ticketStatuses = $this->selectedProject->ticketStatuses()
             ->with(['tickets' => function ($query) {
-                 $query->with(['assignees', 'status'])
+                 $query->with(['assignees', 'status', 'priority'])
                     ->orderBy('created_at', 'desc');
             }])
             ->orderBy('sort_order')
@@ -136,7 +136,7 @@ class ProjectBoard extends Page
 
     public function showTicketDetails(int $ticketId): void
     {
-        $ticket = Ticket::with(['assignees', 'status', 'project'])->find($ticketId);
+        $ticket = Ticket::with(['assignees', 'status', 'project', 'priority'])->find($ticketId);
 
         if (! $ticket) {
             Notification::make()

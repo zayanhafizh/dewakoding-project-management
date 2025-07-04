@@ -16,6 +16,7 @@ class Ticket extends Model
     protected $fillable = [
         'project_id',
         'ticket_status_id',
+        'priority_id',
         'name',
         'description',
         'due_date',
@@ -91,6 +92,11 @@ class Ticket extends Model
     public function epic(): BelongsTo
     {
         return $this->belongsTo(Epic::class);
+    }
+
+    public function priority(): BelongsTo
+    {
+        return $this->belongsTo(TicketPriority::class, 'priority_id');
     }
 
     // Helper methods

@@ -6,6 +6,7 @@ use App\Filament\Resources\TicketResource\Pages;
 use App\Models\Project;
 use App\Models\Ticket;
 use App\Models\TicketStatus;
+use App\Models\TicketPriority;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -87,6 +88,13 @@ class TicketResource extends Resource
                     ->required()
                     ->searchable()
                     ->preload(),
+
+                Forms\Components\Select::make('priority_id')
+                    ->label('Priority')
+                    ->options(TicketPriority::pluck('name', 'id')->toArray())
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
 
                 Forms\Components\Select::make('epic_id')
                     ->label('Epic')
@@ -182,6 +190,19 @@ class TicketResource extends Resource
                     ->badge()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('priority.name')
+                    ->label('Priority')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'High' => 'danger',
+                        'Medium' => 'warning',
+                        'Low' => 'success',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->default('—')
+                    ->placeholder('No Priority'),
+
                 // Display multiple assignees
                 Tables\Columns\TextColumn::make('assignees.name')
                     ->label('Assign To')
@@ -259,6 +280,12 @@ class TicketResource extends Resource
                     ->searchable()
                     ->preload(),
 
+                Tables\Filters\SelectFilter::make('priority_id')
+                    ->label('Priority')
+                    ->options(TicketPriority::pluck('name', 'id')->toArray())
+                    ->searchable()
+                    ->preload(),
+
                 // Filter by assignees
                 Tables\Filters\SelectFilter::make('assignees')
                     ->label('Assignee')
@@ -323,6 +350,23 @@ class TicketResource extends Resource
                             foreach ($records as $record) {
                                 $record->update([
                                     'ticket_status_id' => $data['ticket_status_id'],
+                                ]);
+                            }
+                        }),
+
+                    Tables\Actions\BulkAction::make('updatePriority')
+                        ->label('Update Priority')
+                        ->icon('heroicon-o-flag')
+                        ->form([
+                            Forms\Components\Select::make('priority_id')
+                                ->label('Priority')
+                                ->options(TicketPriority::pluck('name', 'id')->toArray())
+                                ->nullable(),
+                        ])
+                        ->action(function (array $data, Collection $records) {
+                            foreach ($records as $record) {
+                                $record->update([
+                                    'priority_id' => $data['priority_id'],
                                 ]);
                             }
                         }),

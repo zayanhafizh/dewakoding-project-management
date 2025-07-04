@@ -29,163 +29,7 @@
 
     @if($selectedProject)
         <div
-            x-data="dragDropHandler()"
-            x-init="init()"
-            @ticket-moved.window="init()"
-            @ticket-updated.window="init()"
-            @refresh-board.window="init()"
-            class="relative overflow-x-auto pb-6"
-            id="board-container"
-        >
-            {{-- Scroll indicators --}}
-            <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-100 dark:from-gray-800 to-transparent pointer-events-none z-10"
-                 x-data="{ visible: false }"
-                 x-init="$nextTick(() => { 
-                     const container = document.getElementById('board-container');
-                     container.addEventListener('scroll', () => {
-                         visible = container.scrollLeft > 20;
-                     });
-                 })"
-                 x-show="visible"
-                 x-transition.opacity
-            ></div>
-            
-            <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-100 dark:from-gray-800 to-transparent pointer-events-none z-10"
-                 x-data="{ visible: false }"
-                 x-init="$nextTick(() => { 
-                     const container = document.getElementById('board-container');
-                     visible = container.scrollWidth > container.clientWidth;
-                     container.addEventListener('scroll', () => {
-                         visible = container.scrollLeft + container.clientWidth < container.scrollWidth - 20;
-                     });
-                 })"
-                 x-show="visible"
-                 x-transition.opacity
-            ></div>
-
-            {{-- Mobile swipe hint --}}
-            <div class="md:hidden flex justify-center mb-2 text-xs text-gray-500 dark:text-gray-400 items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span>Swipe horizontally to view all columns</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-            </div>
-
-            <div class="inline-flex gap-4 pb-2 min-w-full">
-                @foreach ($ticketStatuses as $status)
-                    <div 
-                        class="status-column rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900"
-                        style="width: calc(85vw - 2rem); min-width: 280px; max-width: 350px; @media (min-width: 640px) { width: calc((100vw - 6rem) / 2); } @media (min-width: 1024px) { width: calc((100vw - 8rem) / 3); } @media (min-width: 1280px) { width: calc((100vw - 10rem) / 4); }"
-                        data-status-id="{{ $status->id }}"
-                    >
-                        <div 
-                            class="px-4 py-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700"
-                            style="background-color: {{ $status->color ?? '#f3f4f6' }};"
-                        >
-                            <h3 class="font-medium flex items-center justify-between" style="color: white; text-shadow: 0px 0px 1px rgba(0,0,0,0.5);">
-                                <span>{{ $status->name }}</span>
-                                <span class="text-sm opacity-80">{{ $status->tickets->count() }}</span>
-                            </h3>
-                        </div>
-                        
-                        <div class="p-3 flex flex-col gap-3 h-[calc(100vh-22rem)] sm:h-[calc(100vh-20rem)] overflow-y-auto">
-                            @foreach ($status->tickets as $ticket)
-                                <div 
-                                    class="ticket-card bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-move"
-                                    data-ticket-id="{{ $ticket->id }}"
-                                >
-                                    <div class="flex justify-between items-center mb-2">
-                                        <span class="text-xs font-mono text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded truncate max-w-[120px] sm:max-w-none">
-                                            {{ $ticket->uuid }}
-                                        </span>
-                                        @if ($ticket->due_date)
-                                            <span class="text-xs px-1.5 py-0.5 rounded whitespace-nowrap {{ $ticket->due_date->isPast() ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">
-                                                {{ $ticket->due_date->format('M d') }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    
-                                    <h4 class="font-medium text-gray-900 dark:text-white mb-2">{{ $ticket->name }}</h4>
-                                    
-                                    @if ($ticket->description)
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                                            {{ \Illuminate\Support\Str::limit(strip_tags($ticket->description), 100) }}
-                                        </p>
-                                    @endif
-                                    
-                                    <div class="flex justify-between items-center mt-2">
-                                       @if ($ticket->assignees->isNotEmpty())
-                                            <div class="flex flex-wrap gap-1 max-w-[180px]">
-                                                @foreach($ticket->assignees->take(2) as $assignee)
-                                                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 gap-1">
-                                                        <span class="w-4 h-4 rounded-full bg-primary-500 flex items-center justify-center text-xs text-white flex-shrink-0">
-                                                            {{ substr($assignee->name, 0, 1) }}
-                                                        </span>
-                                                        <span class="text-xs font-medium truncate">{{ \Illuminate\Support\Str::limit($assignee->name, 8) }}</span>
-                                                    </div>
-                                                @endforeach
-                                                @if($ticket->assignees->count() > 2)
-                                                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
-                                                        <span class="text-xs font-medium">+{{ $ticket->assignees->count() - 2 }}</span>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @else
-                                            <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 dark:text-gray-500 mr-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                                </svg>
-                                                <span class="text-xs font-medium">Unassigned</span>
-                                            </div>
-                                        @endif
-                                        
-                                        <button
-                                            type="button" 
-                                            wire:click="showTicketDetails({{ $ticket->id }})"
-                                            class="inline-flex items-center justify-center w-8 h-8 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-primary-600 hover:text-primary-500 dark:text-primary-500 dark:hover:text-primary-400 flex-shrink-0"
-                                        >
-                                            <x-heroicon-m-eye class="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            @endforeach
-                            
-                            @if ($status->tickets->isEmpty())
-                                <div class="flex items-center justify-center h-24 text-gray-500 dark:text-gray-400 text-sm italic border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-                                    No tickets
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-                
-                @if ($ticketStatuses->isEmpty())
-                    <div class="w-full flex items-center justify-center h-40 text-gray-500 dark:text-gray-400">
-                        No status columns found for this project
-                    </div>
-                @endif
-            </div>
-        </div>
-    @else
-        <div class="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 gap-4">
-            <div class="flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 p-6">
-                <x-heroicon-o-view-columns class="w-16 h-16 text-gray-400 dark:text-gray-500" />
-            </div>
-            <h2 class="text-xl font-medium text-gray-600 dark:text-gray-300">Please select a project first</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Select a project from the dropdown above to view the board
-            </p>
-        </div>
-    @endif
-    
-
-    {{-- Drag and Drop Handler Script --}}
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('dragDropHandler', () => ({
+            x-data="{
                 draggingTicket: null,
                 isTouchDevice: false,
                 touchStartX: 0,
@@ -198,7 +42,99 @@
                         this.attachAllEventListeners();
                         this.setupTouchScrolling();
                         this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                        
+                        // Add listeners for when user returns to the board
+                        this.setupPageVisibilityListener();
                     });
+                },
+                
+                setupPageVisibilityListener() {
+                    // Listen for page visibility changes (when user returns to tab)
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden) {
+                            // Page is visible again, reinitialize drag and drop
+                            setTimeout(() => {
+                                this.removeAllEventListeners();
+                                this.attachAllEventListeners();
+                            }, 100);
+                        }
+                    });
+                    
+                    // Listen for window focus (when user returns to window)
+                    window.addEventListener('focus', () => {
+                        // Window is focused again, reinitialize drag and drop
+                        setTimeout(() => {
+                            this.removeAllEventListeners();
+                            this.attachAllEventListeners();
+                        }, 100);
+                    });
+                    
+                    // Listen for popstate event (when user navigates back)
+                    window.addEventListener('popstate', () => {
+                        // User navigated back, reinitialize drag and drop
+                        setTimeout(() => {
+                            this.removeAllEventListeners();
+                            this.attachAllEventListeners();
+                        }, 200);
+                    });
+                    
+                    // Listen for Livewire lifecycle events
+                    document.addEventListener('livewire:navigated', () => {
+                        // Livewire navigated, reinitialize drag and drop
+                        setTimeout(() => {
+                            this.removeAllEventListeners();
+                            this.attachAllEventListeners();
+                        }, 300);
+                    });
+                    
+                    // Listen for Livewire load and update events
+                    document.addEventListener('livewire:load', () => {
+                        setTimeout(() => {
+                            this.removeAllEventListeners();
+                            this.attachAllEventListeners();
+                        }, 100);
+                    });
+                    
+                    // Listen for Livewire update events
+                    document.addEventListener('livewire:updated', () => {
+                        setTimeout(() => {
+                            this.removeAllEventListeners();
+                            this.attachAllEventListeners();
+                        }, 100);
+                    });
+                    
+                    // Listen for custom board events
+                    window.addEventListener('ticket-updated', () => {
+                        setTimeout(() => {
+                            this.removeAllEventListeners();
+                            this.attachAllEventListeners();
+                        }, 150);
+                    });
+                    
+                    // Periodic check to ensure drag and drop is working
+                    setInterval(() => {
+                        if (document.visibilityState === 'visible') {
+                            this.ensureDragDropInitialized();
+                        }
+                    }, 2000);
+                },
+                
+                ensureDragDropInitialized() {
+                    // Check if any ticket cards exist but are not draggable
+                    const tickets = document.querySelectorAll('.ticket-card');
+                    let needsReinitialization = false;
+                    
+                    tickets.forEach(ticket => {
+                        if (!ticket.getAttribute('draggable') || ticket.getAttribute('draggable') !== 'true') {
+                            needsReinitialization = true;
+                        }
+                    });
+                    
+                    // If any tickets are not draggable, reinitialize
+                    if (needsReinitialization && tickets.length > 0) {
+                        this.removeAllEventListeners();
+                        this.attachAllEventListeners();
+                    }
                 },
                 
                 setupTouchScrolling() {
@@ -367,20 +303,9 @@
                                 column.classList.remove('bg-primary-50', 'dark:bg-primary-950');
                             });
                         });
-                        
-                        const detailsButton = ticket.querySelector('button');
-                        if (detailsButton) {
-                            const ticketId = ticket.getAttribute('data-ticket-id');
-                            detailsButton.addEventListener('click', (e) => {
-                                e.stopPropagation(); // Prevent triggering parent events
-                                const componentId = document.querySelector('[wire\\:id]').getAttribute('wire:id');
-                                if (componentId) {
-                                    Livewire.find(componentId).showTicketDetails(ticketId);
-                                }
-                            });
-                        }
                     });
                     
+                    // Attach drag and drop listeners to columns
                     const columns = document.querySelectorAll('.status-column');
                     columns.forEach(column => {
                         column.addEventListener('dragover', (e) => {
@@ -413,22 +338,166 @@
                         });
                     });
                 }
-            }));
-        });
-    </script>
-
-    {{-- Add meta viewport tag if not already present --}}
-    <script>
-        // Ensure proper viewport meta tag exists
-        document.addEventListener('DOMContentLoaded', () => {
-            let viewportMeta = document.querySelector('meta[name="viewport"]');
-            if (!viewportMeta) {
-                viewportMeta = document.createElement('meta');
-                viewportMeta.name = 'viewport';
-                document.head.appendChild(viewportMeta);
-            }
-            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            }"
+            x-init="init()"
+            @ticket-moved.window="init()"
+            @ticket-updated.window="init()"
+            @refresh-board.window="init()"
+            wire:key="board-container-{{ $selectedProject->id }}"
+            class="relative overflow-x-auto pb-6"
+            id="board-container"
+        >
+            {{-- Scroll indicators --}}
+            <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-100 dark:from-gray-800 to-transparent pointer-events-none z-10"
+                 x-data="{ visible: false }"
+                 x-init="$nextTick(() => { 
+                     const container = document.getElementById('board-container');
+                     container.addEventListener('scroll', () => {
+                         visible = container.scrollLeft > 20;
+                     });
+                 })"
+                 x-show="visible"
+                 x-transition.opacity
+            ></div>
             
-        });
-    </script>
+            <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-100 dark:from-gray-800 to-transparent pointer-events-none z-10"
+                 x-data="{ visible: false }"
+                 x-init="$nextTick(() => { 
+                     const container = document.getElementById('board-container');
+                     visible = container.scrollWidth > container.clientWidth;
+                     container.addEventListener('scroll', () => {
+                         visible = container.scrollLeft + container.clientWidth < container.scrollWidth - 20;
+                     });
+                 })"
+                 x-show="visible"
+                 x-transition.opacity
+            ></div>
+
+            {{-- Mobile swipe hint --}}
+            <div class="md:hidden flex justify-center mb-2 text-xs text-gray-500 dark:text-gray-400 items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Swipe horizontally to view all columns</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </div>
+
+            <div class="inline-flex gap-4 pb-2 min-w-full">
+                @foreach ($ticketStatuses as $status)
+                    <div 
+                        class="status-column rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900"
+                        style="width: calc(85vw - 2rem); min-width: 280px; max-width: 350px; @media (min-width: 640px) { width: calc((100vw - 6rem) / 2); } @media (min-width: 1024px) { width: calc((100vw - 8rem) / 3); } @media (min-width: 1280px) { width: calc((100vw - 10rem) / 4); }"
+                        data-status-id="{{ $status->id }}"
+                    >
+                        <div 
+                            class="px-4 py-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700"
+                            style="background-color: {{ $status->color ?? '#f3f4f6' }};"
+                        >
+                            <h3 class="font-medium flex items-center justify-between" style="color: white; text-shadow: 0px 0px 1px rgba(0,0,0,0.5);">
+                                <span>{{ $status->name }}</span>
+                                <span class="text-sm opacity-80">{{ $status->tickets->count() }}</span>
+                            </h3>
+                        </div>
+                        
+                        <div class="p-3 flex flex-col gap-3 h-[calc(100vh-22rem)] sm:h-[calc(100vh-20rem)] overflow-y-auto">
+                            @foreach ($status->tickets as $ticket)
+                                <div 
+                                    class="ticket-card bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-move"
+                                    data-ticket-id="{{ $ticket->id }}"
+                                >
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-mono text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded truncate max-w-[120px] sm:max-w-none">
+                                            {{ $ticket->uuid }}
+                                        </span>
+                                        <div class="flex items-center gap-1">
+                                            @if ($ticket->priority)
+                                                <span class="text-xs px-1.5 py-0.5 rounded whitespace-nowrap text-white font-medium" style="background-color: {{ $ticket->priority->color }};">
+                                                    {{ $ticket->priority->name }}
+                                                </span>
+                                            @endif
+                                            @if ($ticket->due_date)
+                                                <span class="text-xs px-1.5 py-0.5 rounded whitespace-nowrap {{ $ticket->due_date->isPast() ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">
+                                                    {{ $ticket->due_date->format('M d') }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <h4 class="font-medium text-gray-900 dark:text-white mb-2">{{ $ticket->name }}</h4>
+                                    
+                                    @if ($ticket->description)
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                                            {{ \Illuminate\Support\Str::limit(strip_tags($ticket->description), 100) }}
+                                        </p>
+                                    @endif
+                                    
+                                    <div class="flex justify-between items-center mt-2">
+                                       @if ($ticket->assignees->isNotEmpty())
+                                            <div class="flex flex-wrap gap-1 max-w-[180px]">
+                                                @foreach($ticket->assignees->take(2) as $assignee)
+                                                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 gap-1">
+                                                        <span class="w-4 h-4 rounded-full bg-primary-500 flex items-center justify-center text-xs text-white flex-shrink-0">
+                                                            {{ substr($assignee->name, 0, 1) }}
+                                                        </span>
+                                                        <span class="text-xs font-medium truncate">{{ \Illuminate\Support\Str::limit($assignee->name, 8) }}</span>
+                                                    </div>
+                                                @endforeach
+                                                @if($ticket->assignees->count() > 2)
+                                                    <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
+                                                        <span class="text-xs font-medium">+{{ $ticket->assignees->count() - 2 }}</span>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 dark:text-gray-500 mr-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                                </svg>
+                                                <span class="text-xs font-medium">Unassigned</span>
+                                            </div>
+                                        @endif
+                                        
+                                        <button
+                                            type="button" 
+                                            wire:click="showTicketDetails({{ $ticket->id }})"
+                                            class="inline-flex items-center justify-center w-8 h-8 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-primary-600 hover:text-primary-500 dark:text-primary-500 dark:hover:text-primary-400 flex-shrink-0"
+                                        >
+                                            <x-heroicon-m-eye class="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                            
+                            @if ($status->tickets->isEmpty())
+                                <div class="flex items-center justify-center h-24 text-gray-500 dark:text-gray-400 text-sm italic border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                                    No tickets
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+                
+                @if ($ticketStatuses->isEmpty())
+                    <div class="w-full flex items-center justify-center h-40 text-gray-500 dark:text-gray-400">
+                        No status columns found for this project
+                    </div>
+                @endif
+            </div>
+        </div>
+    @else
+        <div class="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 gap-4">
+            <div class="flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 p-6">
+                <x-heroicon-o-view-columns class="w-16 h-16 text-gray-400 dark:text-gray-500" />
+            </div>
+            <h2 class="text-xl font-medium text-gray-600 dark:text-gray-300">Please select a project first</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Select a project from the dropdown above to view the board
+            </p>
+        </div>
+    @endif
+    
+
+
 </x-filament-panels::page>
