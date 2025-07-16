@@ -156,8 +156,6 @@ class TicketResource extends Resource
                 Forms\Components\DatePicker::make('due_date')
                     ->label('Due Date')
                     ->nullable(),
-
-                // Show created by field in edit mode
                 Forms\Components\Select::make('created_by')
                     ->label('Created By')
                     ->relationship('creator', 'name')
@@ -434,7 +432,6 @@ class TicketResource extends Resource
             'index' => Pages\ListTickets::route('/'),
             'create' => Pages\CreateTicket::route('/create'),
             'edit' => Pages\EditTicket::route('/{record}/edit'),
-            'view' => Pages\ViewTicket::route('/{record}'),
         ];
     }
 

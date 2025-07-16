@@ -17,17 +17,19 @@ class ProjectTimeline extends Widget
 
     static ?int $sort = 2;
     
-    public string $filter = 'active';
+    public string $filter = 'pinned';
     
     public function getProjects()
     {
         $query = Project::query()
             ->whereNotNull('start_date')
-            ->whereNotNull('end_date')
-            ->orderBy('name');
+            ->whereNotNull('end_date');
             
-        if ($this->filter === 'active') {
-            $query->where('end_date', '>=', Carbon::today());
+        if ($this->filter === 'pinned') {
+            $query->whereNotNull('pinned_date')
+                  ->orderBy('pinned_date', 'desc');
+        } else {
+            $query->orderBy('name');
         }
             
         $userIsSuperAdmin = auth()->user() && (
@@ -68,8 +70,7 @@ class ProjectTimeline extends Widget
             
         return [
             'all' => $query->count(),
-            'active' => $query->where('end_date', '>=', Carbon::today())->count(),
-            'completed' => $query->where('end_date', '<', Carbon::today())->count(),
+            'pinned' => $query->whereNotNull('pinned_date')->count(),
         ];
     }
     

@@ -12,10 +12,11 @@ A Laravel Filament 3 application for managing projects with ticket management an
 - Team member management with role assignments
 - Customizable ticket statuses with color coding
 - Ticket management with assignees and due dates
-- Unique ticket identifiers (PROJECT-XXXXXX format)
+- Unique ticket identifiers
 - Epic management for organizing tickets into larger initiatives
 - Comment system for tickets to facilitate team discussions
 - Kanban board view for visualizing ticket progress
+- Assign ticket to multi users
 
 ## Requirements
 

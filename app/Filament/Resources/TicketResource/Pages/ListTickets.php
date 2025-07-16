@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Filament\Resources\TicketResource;
+use App\Filament\Actions\ImportTicketsAction;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
@@ -14,6 +15,7 @@ class ListTickets extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            ImportTicketsAction::make(),
         ];
     }
 }

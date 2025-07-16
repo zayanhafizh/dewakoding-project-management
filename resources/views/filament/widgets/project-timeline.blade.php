@@ -10,18 +10,18 @@
                 <!-- Filter Buttons -->
                 <div class="flex gap-2">
                     <x-filament::button
-                        wire:click="setFilter('active')"
-                        :color="$filter === 'active' ? 'primary' : 'gray'"
-                        :outlined="$filter !== 'active'"
+                        wire:click="setFilter('pinned')"
+                        :color="$filter === 'pinned' ? 'primary' : 'gray'"
+                        :outlined="$filter !== 'pinned'"
                         size="sm"
                     >
-                        Active Projects
+                        Pinned Projects
                         <x-filament::badge
-                            :color="$filter === 'active' ? 'primary' : 'gray'"
+                            :color="$filter === 'pinned' ? 'primary' : 'gray'"
                             size="sm"
                             class="ml-1"
                         >
-                            {{ $counts['active'] }}
+                            {{ $counts['pinned'] }}
                         </x-filament::badge>
                     </x-filament::button>
                     
@@ -51,16 +51,16 @@
                     </div>
                     
                     <h3 class="mt-4 text-sm font-medium text-gray-900 dark:text-white">
-                        @if($filter === 'active')
-                            No active projects
+                        @if($filter === 'pinned')
+                            No pinned projects
                         @else
                             No projects found
                         @endif
                     </h3>
                     
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm">
-                        @if($filter === 'active')
-                            All your projects have been completed or you don't have access to any active projects.
+                        @if($filter === 'pinned')
+                            You haven't pinned any projects yet. Pin important projects to keep them easily accessible.
                         @else
                             Create a new project or check your project permissions.
                         @endif
@@ -117,8 +117,6 @@
                                             </div>
                                         @endif
                                     </div>
-                                    
-                                   
                                 </div>
                                 
                                 <!-- Progress Info -->
@@ -143,7 +141,7 @@
                                             </div>
                                         @else
                                             <div class="font-medium text-amber-600 dark:text-amber-400">
-                                                
+                                                Due today
                                             </div>
                                         @endif
                                     </div>
@@ -156,3 +154,5 @@
         </div>
     </x-filament::section>
 </x-filament-widgets::widget>
+
+

@@ -47,6 +47,20 @@ class ProjectResource extends Resource
                     ->default(true)
                     ->dehydrated(false)
                     ->visible(fn ($livewire) => $livewire instanceof Pages\CreateProject),
+                
+                Forms\Components\Toggle::make('is_pinned')
+                    ->label('Pin Project')
+                    ->helperText('Pinned projects will appear in the dashboard timeline')
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set) {
+                        if ($state) {
+                            $set('pinned_date', now());
+                        } else {
+                            $set('pinned_date', null);
+                        }
+                    })
+                    ->dehydrated(false),
+                Forms\Components\Hidden::make('pinned_date'),
             ]);
     }
 

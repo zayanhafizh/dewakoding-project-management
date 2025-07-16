@@ -18,12 +18,32 @@ class Project extends Model
         'ticket_prefix',
         'start_date',
         'end_date',
+        'pinned_date',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'pinned_date' => 'datetime',
     ];
+
+    // Helper method to check if project is pinned
+    public function getIsPinnedAttribute(): bool
+    {
+        return !is_null($this->pinned_date);
+    }
+
+    // Helper method to pin project
+    public function pin(): void
+    {
+        $this->update(['pinned_date' => now()]);
+    }
+
+    // Helper method to unpin project
+    public function unpin(): void
+    {
+        $this->update(['pinned_date' => null]);
+    }
 
     public function ticketStatuses(): HasMany
     {
