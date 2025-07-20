@@ -59,8 +59,16 @@ class ProjectResource extends Resource
                             $set('pinned_date', null);
                         }
                     })
-                    ->dehydrated(false),
-                Forms\Components\Hidden::make('pinned_date'),
+                    ->dehydrated(false)
+                    ->afterStateHydrated(function ($component, $state, $get) {
+                        $component->state(!is_null($get('pinned_date')));
+                    }),
+                Forms\Components\DateTimePicker::make('pinned_date')
+                    ->label('Pinned Date')
+                    ->native(false)
+                    ->displayFormat('d/m/Y H:i')
+                    ->visible(fn ($get) => $get('is_pinned'))
+                    ->dehydrated(true),
             ]);
     }
 
@@ -93,6 +101,17 @@ class ProjectResource extends Resource
                         ($record->remaining_days <= 0 ? 'danger' : 
                         ($record->remaining_days <= 7 ? 'warning' : 'success'))
                     ),
+                Tables\Columns\ToggleColumn::make('is_pinned')
+                    ->label('Pinned')
+                    ->updateStateUsing(function ($record, $state) {
+                        // Gunakan method pin/unpin yang sudah ada di model
+                        if ($state) {
+                            $record->pin();
+                        } else {
+                            $record->unpin();
+                        }
+                        return $state;
+                    }),
                 Tables\Columns\TextColumn::make('members_count')
                     ->counts('members')
                     ->label('Members'),
@@ -107,9 +126,6 @@ class ProjectResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                // No toggle filter here
             ])
             ->actions([
                 Tables\Actions\EditAction::make()

@@ -33,19 +33,10 @@ class StatsOverview extends BaseWidget
     {
         $totalProjects = Project::count();
         $totalTickets = Ticket::count();
-        $newTicketsLastWeek = Ticket::where('created_at', '>=', Carbon::now()->subDays(7))->count();
         $usersCount = User::count();
-        $unassignedTickets = Ticket::whereDoesntHave('assignees')->count();
         $myTickets = DB::table('tickets')
             ->join('ticket_users', 'tickets.id', '=', 'ticket_users.ticket_id')
             ->where('ticket_users.user_id', auth()->id())
-            ->count();
-        
-        $myCreatedTickets = Ticket::where('created_by', auth()->id())->count();
-        $overdueTickets = Ticket::where('tickets.due_date', '<', Carbon::now())
-            ->whereHas('status', function ($query) {
-                $query->whereNotIn('name', ['Completed', 'Done', 'Closed']);
-            })
             ->count();
 
         return [
@@ -63,26 +54,6 @@ class StatsOverview extends BaseWidget
                 ->description('Tickets assigned to you')
                 ->descriptionIcon('heroicon-m-user-circle')
                 ->color('info'),
-
-            Stat::make('New Tickets This Week', $newTicketsLastWeek)
-                ->description('Created in the last 7 days')
-                ->descriptionIcon('heroicon-m-plus-circle')
-                ->color('info'),
-
-            Stat::make('Unassigned Tickets', $unassignedTickets)
-                ->description('Tickets without any assignee')
-                ->descriptionIcon('heroicon-m-user-minus')
-                ->color($unassignedTickets > 0 ? 'danger' : 'success'),
-
-            Stat::make('My Created Tickets', $myCreatedTickets)
-                ->description('Tickets you created')
-                ->descriptionIcon('heroicon-m-pencil-square')
-                ->color('warning'),
-
-            Stat::make('Overdue Tickets', $overdueTickets)
-                ->description('Past due date')
-                ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color($overdueTickets > 0 ? 'danger' : 'success'),
 
             Stat::make('Team Members', $usersCount)
                 ->description('Registered users')

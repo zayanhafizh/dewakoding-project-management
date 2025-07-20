@@ -2,57 +2,48 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Resources\TicketResource;
 use App\Models\Project;
 use App\Models\Ticket;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
+use Auth;
+use Carbon\Carbon;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
-use Livewire\Attributes\On;
-use App\Filament\Actions\ExportTicketsAction;
-use App\Exports\TicketsExport;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Storage;
 
-class ProjectBoard extends Page
+class TicketTimeline extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-view-columns';
+    protected static ?string $navigationIcon = 'heroicon-o-calendar';
 
-    protected static string $view = 'filament.pages.project-board';
+    protected static ?string $navigationLabel = 'Timeline';
 
-    protected static ?string $title = 'Project Board';
-
-    protected static ?string $navigationLabel = 'Project Board';
-
-    protected static ?string $navigationGroup = 'Project Management';
+    protected static ?string $title = 'Ticket Timeline';
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $slug = 'project-board/{project_id?}';
+    protected static string $view = 'filament.pages.ticket-timeline';
 
-    public ?Project $selectedProject = null;
+    protected static ?string $navigationGroup = 'Project Management';
+
+    public ?string $projectId = null;
 
     public Collection $projects;
 
-    public Collection $ticketStatuses;
+    public ?Project $selectedProject = null;
 
-    public ?Ticket $selectedTicket = null;
-
-    public ?int $selectedProjectId = null;
+    protected static ?string $slug = 'ticket-timeline/{project_id?}';
 
     public function mount($project_id = null): void
     {
-        if (auth()->user()->hasRole(['super_admin'])) {
+        $user = Auth::user();
+
+        if ($user->hasRole('super_admin')) {
             $this->projects = Project::all();
         } else {
-            $this->projects = auth()->user()->projects;
+            $this->projects = $user->projects;
         }
 
         if ($project_id && $this->projects->contains('id', $project_id)) {
-            $this->selectedProjectId = (int) $project_id;
+            $this->projectId = $project_id;
             $this->selectedProject = Project::find($project_id);
-            $this->loadTicketStatuses();
         } elseif ($this->projects->isNotEmpty() && ! is_null($project_id)) {
             Notification::make()
                 ->title('Project Not Found')
@@ -62,247 +53,224 @@ class ProjectBoard extends Page
         }
     }
 
-    public function selectProject(int $projectId): void
+    public function updatedProjectId($value): void
     {
-        $this->selectedTicket = null;
-        $this->ticketStatuses = collect();
-        $this->selectedProjectId = $projectId;
+        if ($value) {
+            $this->selectProject($value);
+        } else {
+            $this->selectedProject = null;
+            $this->redirect(static::getUrl());
+        }
+    }
+
+    public function selectProject($projectId): void
+    {
+        $this->projectId = $projectId;
         $this->selectedProject = Project::find($projectId);
 
         if ($this->selectedProject) {
             $url = static::getUrl(['project_id' => $projectId]);
             $this->redirect($url);
-
-            $this->loadTicketStatuses();
         }
     }
 
-    public function updatedSelectedProjectId($value): void
+    public function getTicketsProperty(): Collection
     {
-        if ($value) {
-            $this->selectProject((int) $value);
+        if (!$this->projectId || !$this->selectedProject) {
+            return collect();
+        }
+
+        $query = Ticket::query()
+            ->with(['status', 'project'])
+            ->whereNotNull('due_date')
+            ->orderBy('due_date');
+
+        if ($this->projectId) {
+            $query->where('project_id', $this->projectId);
         } else {
-            $this->selectedProject = null;
-            $this->ticketStatuses = collect();
-
-            $this->redirect(static::getUrl());
-        }
-    }
-
-    public function loadTicketStatuses(): void
-    {
-        if (! $this->selectedProject) {
-            $this->ticketStatuses = collect();
-
-            return;
+            $projectIds = $this->projects->pluck('id')->toArray();
+            $query->whereIn('project_id', $projectIds);
         }
 
-        $this->ticketStatuses = $this->selectedProject->ticketStatuses()
-            ->with(['tickets' => function ($query) {
-                 $query->with(['assignees', 'status', 'priority'])
-                    ->orderBy('created_at', 'desc');
-            }])
-            ->orderBy('sort_order')
-            ->get();
+        return $query->get();
     }
 
-    #[On('ticket-moved')]
-    public function moveTicket($ticketId, $newStatusId): void
+    public function getMonthHeaders(): array
     {
-        $ticket = Ticket::find($ticketId);
-
-        if ($ticket && $ticket->project_id === $this->selectedProject?->id) {
-            $ticket->update([
-                'ticket_status_id' => $newStatusId,
-            ]);
-
-            $this->loadTicketStatuses();
-
-            $this->dispatch('ticket-updated');
-
-            Notification::make()
-                ->title('Ticket Updated')
-                ->success()
-                ->send();
-        }
-    }
-
-    #[On('refresh-board')]
-    public function refreshBoard(): void
-    {
-        $this->loadTicketStatuses();
-        $this->dispatch('ticket-updated');
-    }
-
-    public function showTicketDetails(int $ticketId): void
-    {
-        $ticket = Ticket::with(['assignees', 'status', 'project', 'priority'])->find($ticketId);
-
-        if (! $ticket) {
-            Notification::make()
-                ->title('Ticket Not Found')
-                ->danger()
-                ->send();
-
-            return;
+        if (!$this->selectedProject) {
+            return [];
         }
 
-        
-        $url = TicketResource::getUrl('view', ['record' => $ticketId]);
-        $this->js("window.open('{$url}', '_blank')");
-    }
+        $tickets = $this->tickets;
 
-    public function closeTicketDetails(): void
-    {
-        $this->selectedTicket = null;
-    }
+        if ($tickets->isEmpty()) {
+            $months = [];
+            $current = Carbon::now()->subMonths(3)->startOfMonth();
+            for ($i = 0; $i < 6; $i++) {
+                $months[] = $current->format('M Y');
+                $current->addMonth();
+            }
 
-    public function editTicket(int $ticketId): void
-    {
-        $ticket = Ticket::find($ticketId);
-
-        if (! $this->canEditTicket($ticket)) {
-            Notification::make()
-                ->title('Permission Denied')
-                ->body('You do not have permission to edit this ticket.')
-                ->danger()
-                ->send();
-
-            return;
+            return $months;
         }
 
-        $this->redirect(TicketResource::getUrl('edit', ['record' => $ticketId]));
+        $earliestDate = null;
+        $latestDate = null;
+
+        foreach ($tickets as $ticket) {
+            if ($ticket->due_date) {
+                $createdAt = $ticket->created_at ?? Carbon::parse($ticket->due_date)->subDays(14);
+                $dueDate = Carbon::parse($ticket->due_date);
+
+                if ($earliestDate === null || $createdAt < $earliestDate) {
+                    $earliestDate = $createdAt;
+                }
+
+                if ($latestDate === null || $dueDate > $latestDate) {
+                    $latestDate = $dueDate;
+                }
+            }
+        }
+
+        if ($earliestDate === null || $latestDate === null) {
+            return ['Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025'];
+        }
+
+        $earliestDate = $earliestDate->startOfMonth();
+        $latestDate = $latestDate->endOfMonth();
+
+        $months = [];
+        $current = clone $earliestDate;
+
+        while ($current <= $latestDate) {
+            $months[] = $current->format('M Y');
+            $current->addMonth();
+        }
+
+        return $months;
     }
 
-    protected function getHeaderActions(): array
+    public function getTimelineData(): array
     {
+        if (!$this->selectedProject) {
+            return [
+                'tasks' => [],
+            ];
+        }
+
+        $tickets = $this->tickets;
+
+        if ($tickets->isEmpty()) {
+            return [
+                'tasks' => [],
+            ];
+        }
+
+        $monthHeaders = $this->getMonthHeaders();
+        $monthRanges = $this->getMonthDateRanges($monthHeaders);
+
+        $tasks = [];
+        $now = Carbon::now();
+
+        foreach ($tickets as $index => $ticket) {
+            if (! $ticket->due_date) {
+                continue;
+            }
+
+            $startDate = $ticket->created_at ? Carbon::parse($ticket->created_at) : Carbon::parse($ticket->due_date)->subDays(14);
+            $endDate = Carbon::parse($ticket->due_date);
+
+            $hue = ($index * 137) % 360;
+            $color = "hsl({$hue}, 70%, 50%)";
+
+            $remainingDays = $now->diffInDays($endDate, false);
+
+            $barSpans = [];
+
+            foreach ($monthRanges as $monthIndex => $monthRange) {
+                $monthStart = $monthRange['start'];
+                $monthEnd = $monthRange['end'];
+                $daysInMonth = $monthStart->daysInMonth;
+
+                if ($startDate <= $monthEnd && $endDate >= $monthStart) {
+                    $startPosition = 0;
+                    if ($startDate > $monthStart) {
+                        $daysFromMonthStart = $monthStart->diffInDays($startDate);
+                        $startPosition = ($daysFromMonthStart / $daysInMonth) * 100;
+                    }
+
+                    $endPosition = 100;
+                    if ($endDate < $monthEnd) {
+                        $daysFromMonthStart = $monthStart->diffInDays($endDate);
+                        $endPosition = (($daysFromMonthStart + 1) / $daysInMonth) * 100;
+                    }
+
+                    $widthPercentage = $endPosition - $startPosition;
+
+                    $barSpans[$monthIndex] = [
+                        'start_position' => $startPosition,
+                        'width_percentage' => $widthPercentage,
+                    ];
+                }
+            }
+
+            $status = strtolower($ticket->status->name ?? 'default');
+            $statusLabel = ucfirst($status);
+            $isOverdue = $endDate < $now && ! in_array($status, ['completed', 'done', 'closed', 'resolved']);
+
+            $remainingDaysText = '';
+            if ($remainingDays > 0) {
+                $remainingDaysText = "{$remainingDays} days left";
+            } elseif ($remainingDays === 0) {
+                $remainingDaysText = 'Due today';
+            } else {
+                $remainingDaysText = abs($remainingDays).' days overdue';
+            }
+
+            $tasks[] = [
+                'id' => $ticket->id,
+                'title' => $ticket->name,
+                'ticket_id' => $ticket->uuid,
+                'color' => $color,
+                'bar_spans' => $barSpans,
+                'start_date' => $startDate->format('M j'),
+                'end_date' => $endDate->format('M j'),
+                'remaining_days' => $remainingDays,
+                'remaining_days_text' => $remainingDaysText,
+                'status' => $status,
+                'status_label' => $statusLabel,
+                'is_overdue' => $isOverdue,
+            ];
+        }
+
+        usort($tasks, function ($a, $b) {
+            if ($a['is_overdue'] && ! $b['is_overdue']) {
+                return -1;
+            }
+            if (! $a['is_overdue'] && $b['is_overdue']) {
+                return 1;
+            }
+
+            return $a['remaining_days'] <=> $b['remaining_days'];
+        });
+
         return [
-            Action::make('new_ticket')
-                ->label('New Ticket')
-                ->icon('heroicon-m-plus')
-                ->visible(fn () => $this->selectedProject !== null && auth()->user()->hasRole(['super_admin']))
-                ->url(fn (): string => TicketResource::getUrl('create', [
-                    'project_id' => $this->selectedProject?->id,
-                    'ticket_status_id' => $this->selectedProject?->ticketStatuses->first()?->id,
-                ])),
-
-            Action::make('refresh_board')
-                ->label('Refresh Board')
-                ->icon('heroicon-m-arrow-path')
-                ->action('refreshBoard')
-                ->color('warning'),
-            
-            ExportTicketsAction::make()
-                ->visible(fn () => $this->selectedProject !== null),
+            'tasks' => $tasks,
         ];
     }
 
-    private function canViewTicket(?Ticket $ticket): bool
+    private function getMonthDateRanges(array $monthHeaders): array
     {
-        if (! $ticket) {
-            return false;
+        $ranges = [];
+
+        foreach ($monthHeaders as $index => $monthHeader) {
+            $date = Carbon::createFromFormat('M Y', $monthHeader);
+            $ranges[$index] = [
+                'start' => (clone $date)->startOfMonth(),
+                'end' => (clone $date)->endOfMonth(),
+            ];
         }
 
-        return auth()->user()->hasRole(['super_admin'])
-            || $ticket->user_id === auth()->id()
-            || $ticket->assignees()->where('users.id', auth()->id())->exists();
-    }
-
-    private function canEditTicket(?Ticket $ticket): bool
-    {
-        if (! $ticket) {
-            return false;
-        }
-
-        return auth()->user()->hasRole(['super_admin'])
-            || $ticket->user_id === auth()->id()
-            || $ticket->assignees()->where('users.id', auth()->id())->exists();
-    }
-
-    private function canManageTicket(?Ticket $ticket): bool
-    {
-        if (! $ticket) {
-            return false;
-        }
-
-        return auth()->user()->hasRole(['super_admin'])
-            || $ticket->user_id === auth()->id()
-            || $ticket->assignees()->where('users.id', auth()->id())->exists();
-    }
-
-
-    public function exportTickets(array $selectedColumns): void
-    {
-        if (empty($selectedColumns)) {
-            Notification::make()
-                ->title('Export Failed')
-                ->body('Please select at least one column to export.')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        $tickets = collect();
-        
-        if ($this->selectedProject) {
-            $tickets = $this->selectedProject->tickets()
-                ->with(['assignees', 'status', 'project', 'epic'])
-                ->orderBy('created_at', 'desc')
-                ->get();
-        } elseif ($this->ticketStatuses->isNotEmpty()) {
-            $ticketIds = $this->ticketStatuses->flatMap(function ($status) {
-                return $status->tickets->pluck('id');
-            });
-            
-            $tickets = Ticket::whereIn('id', $ticketIds)
-                ->with(['assignees', 'status', 'project', 'epic'])
-                ->orderBy('created_at', 'asc')
-                ->get();
-        }
-
-        if ($tickets->isEmpty()) {
-            Notification::make()
-                ->title('Export Failed')
-                ->body('No tickets found to export.')
-                ->warning()
-                ->send();
-            return;
-        }
-
-        try {
-            $fileName = 'tickets_' . ($this->selectedProject?->name ?? 'export') . '_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
-            $fileName = \Illuminate\Support\Str::slug($fileName, '_') . '.xlsx';
-            $export = new TicketsExport($tickets, $selectedColumns);
-            Excel::store($export, 'exports/' . $fileName, 'public');
-            $downloadUrl = asset('storage/exports/' . $fileName);
-            $this->js("
-                fetch('{$downloadUrl}')
-                    .then(response => response.blob())
-                    .then(blob => {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = '{$fileName}';
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    });
-            ");
-            
-            Notification::make()
-                ->title('Export Successful')
-                ->body('Your Excel file is being downloaded.')
-                ->success()
-                ->send();
-            
-        } catch (\Exception $e) {
-            Notification::make()
-                ->title('Export Failed')
-                ->body('An error occurred while exporting: ' . $e->getMessage())
-                ->danger()
-                ->send();
-        }
+        return $ranges;
     }
 }

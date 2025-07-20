@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProjectResource\RelationManagers;
 
 use App\Models\Epic;
 use App\Models\TicketStatus;
+use App\Models\TicketPriority;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -274,6 +275,22 @@ class TicketsRelationManager extends RelationManager
                                 ->title('Users assigned')
                                 ->body(count($records) . ' tickets have been updated with new assignees.')
                                 ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('updatePriority')
+                        ->label('Update Priority')
+                        ->icon('heroicon-o-flag')
+                        ->form([
+                            Forms\Components\Select::make('priority_id')
+                                ->label('Priority')
+                                ->options(TicketPriority::pluck('name', 'id')->toArray())
+                                ->nullable(),
+                        ])
+                        ->action(function (array $data, Collection $records) {
+                            foreach ($records as $record) {
+                                $record->update([
+                                    'priority_id' => $data['priority_id'],
+                                ]);
+                            }
                         }),
                 ]),
             ])
