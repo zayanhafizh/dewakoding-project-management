@@ -90,10 +90,13 @@ class ProjectTimeline extends Widget
         $projects = $this->getProjects();
         
         if ($projects->isEmpty()) {
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = Carbon::now()->addMonths(6)->endOfMonth();
             return [
-                'start' => Carbon::now()->startOfMonth(),
-                'end' => Carbon::now()->addMonths(6)->endOfMonth(),
-                'months' => []
+                'start' => $startDate,
+                'end' => $endDate,
+                'months' => [],
+                'total_days' => $startDate->diffInDays($endDate)
             ];
         }
         
