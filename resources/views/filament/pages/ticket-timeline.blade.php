@@ -121,13 +121,14 @@
                     
                     // Configure dhtmlxGantt
                     gantt.config.date_format = "%d-%m-%Y %H:%i";
-                    gantt.config.scale_unit = "month";
-                    gantt.config.date_scale = "%F %Y";
-                    gantt.config.subscales = [
-                        {unit: "day", step: 1, date: "%j"}
+                    
+                    // Updated scale configuration (new format)
+                    gantt.config.scales = [
+                        {unit: "month", step: 1, format: "%F %Y"},
+                        {unit: "day", step: 1, format: "%j"}
                     ];
                     
-                    // Read-only configuration
+                  
                     gantt.config.readonly = true;
                     gantt.config.drag_move = false;
                     gantt.config.drag_resize = false;

@@ -13,6 +13,14 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use App\Imports\TicketsImport;
+use App\Exports\TicketTemplateExport;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
 
 class TicketsRelationManager extends RelationManager
 {
@@ -130,7 +138,14 @@ class TicketsRelationManager extends RelationManager
                     })
                     ->sortable(),
                 
-                // UPDATED: Display multiple assignees
+                Tables\Columns\TextColumn::make('epic.name')
+                    ->label('Epic')
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder('No Epic')
+                    ->sortable()
+                    ->searchable(),
+                
                 Tables\Columns\TextColumn::make('assignees.name')
                     ->label('Assignees')
                     ->badge()
@@ -195,6 +210,88 @@ class TicketsRelationManager extends RelationManager
                         $data['project_id'] = $this->getOwnerRecord()->id;
                         $data['created_by'] = auth()->id();
                         return $data;
+                    }),
+                
+                // NEW: Import from Excel action
+                Tables\Actions\Action::make('import_tickets')
+                    ->label('Import from Excel')
+                    ->icon('heroicon-m-arrow-up-tray')
+                    ->color('success')
+                    ->form([
+                        Section::make('Import Tickets from Excel')
+                            ->description('Upload an Excel file to import tickets to this project. You can download the template below.')
+                            ->schema([
+                                Actions::make([
+                                    FormAction::make('download_template')
+                                        ->label('Download Import Template')
+                                        ->icon('heroicon-m-arrow-down-tray')
+                                        ->color('gray')
+                                        ->action(function (RelationManager $livewire) {
+                                            $project = $livewire->getOwnerRecord();
+                                            $filename = 'ticket-import-template-' . str($project->name)->slug() . '.xlsx';
+                                            
+                                            return Excel::download(
+                                                new TicketTemplateExport($project),
+                                                $filename
+                                            );
+                                        })
+                                ])->fullWidth(),
+                                
+                                FileUpload::make('excel_file')
+                                    ->label('Excel File')
+                                    ->helperText('Upload the Excel file with ticket data. Make sure to use the template format above.')
+                                    ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'])
+                                    ->maxSize(5120) // 5MB
+                                    ->required()
+                                    ->disk('local')
+                                    ->directory('temp-imports')
+                                    ->visibility('private'),
+                            ]),
+                    ])
+                    ->action(function (array $data, RelationManager $livewire) {
+                        $project = $livewire->getOwnerRecord();
+                        $filePath = Storage::disk('local')->path($data['excel_file']);
+                        
+                        try {
+                            $import = new TicketsImport($project);
+                            Excel::import($import, $filePath);
+                            
+                            $importedCount = $import->getImportedCount();
+                            $errors = $import->errors();
+                            $failures = $import->failures();
+                            
+                            // Clean up uploaded file
+                            Storage::disk('local')->delete($data['excel_file']);
+                            
+                            if ($importedCount > 0) {
+                                $message = "Successfully imported {$importedCount} ticket(s) to project '{$project->name}'.";
+                                
+                                if (count($errors) > 0 || count($failures) > 0) {
+                                    $message .= " Some rows had errors and were skipped.";
+                                }
+                                
+                                Notification::make()
+                                    ->title('Import Completed')
+                                    ->body($message)
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Import Failed')
+                                    ->body('No tickets were imported. Please check your file format and data.')
+                                    ->warning()
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            // Clean up uploaded file on error
+                            Storage::disk('local')->delete($data['excel_file']);
+                            
+                            Notification::make()
+                                ->title('Import Error')
+                                ->body('An error occurred during import: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     }),
             ])
             ->actions([
@@ -291,6 +388,41 @@ class TicketsRelationManager extends RelationManager
                                     'priority_id' => $data['priority_id'],
                                 ]);
                             }
+                        }),
+                    
+                    Tables\Actions\BulkAction::make('assignToEpic')
+                        ->label('Assign to Epic')
+                        ->icon('heroicon-o-bookmark')
+                        ->form([
+                            Forms\Components\Select::make('epic_id')
+                                ->label('Epic')
+                                ->options(function (RelationManager $livewire) {
+                                    $projectId = $livewire->getOwnerRecord()->id;
+                                    return Epic::where('project_id', $projectId)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->helperText('Select an epic to assign the selected tickets to. Leave empty to remove epic assignment.'),
+                        ])
+                        ->action(function (array $data, Collection $records) {
+                            foreach ($records as $record) {
+                                $record->update([
+                                    'epic_id' => $data['epic_id'],
+                                ]);
+                            }
+                            
+                            $epicName = $data['epic_id'] 
+                                ? Epic::find($data['epic_id'])->name 
+                                : 'No Epic';
+                            
+                            Notification::make()
+                                ->success()
+                                ->title('Epic assignment updated')
+                                ->body(count($records) . ' tickets have been assigned to: ' . $epicName)
+                                ->send();
                         }),
                 ]),
             ])
