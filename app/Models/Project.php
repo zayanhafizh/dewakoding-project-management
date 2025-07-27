@@ -66,6 +66,11 @@ class Project extends Model
         return $this->hasMany(Epic::class);
     }
 
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ProjectNote::class);
+    }
+
     public function getRemainingDaysAttribute()
     {
         if (!$this->end_date) {

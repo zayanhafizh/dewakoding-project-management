@@ -144,6 +144,7 @@ class ProjectResource extends Resource
             RelationManagers\MembersRelationManager::class,
             RelationManagers\EpicsRelationManager::class,
             RelationManagers\TicketsRelationManager::class,
+            RelationManagers\NotesRelationManager::class,
         ];
     }
 
