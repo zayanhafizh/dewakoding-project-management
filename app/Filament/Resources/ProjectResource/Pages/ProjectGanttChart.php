@@ -12,7 +12,7 @@ class ProjectGanttChart extends Page
 {
     protected static string $resource = ProjectResource::class;
     
-    protected static string $view = 'filament.resources.project-resource.project-gantt-chart';
+    protected static string $view = 'filament.pages.project-gantt-chart';
     
     protected static ?string $title = 'Project Timeline';
     
