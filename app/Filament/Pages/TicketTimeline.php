@@ -61,6 +61,8 @@ class TicketTimeline extends Page implements HasForms
     {
         if ($value) {
             $this->selectProject($value);
+            // Dispatch event untuk refresh gantt chart
+            $this->dispatch('refreshGanttChart');
         } else {
             $this->selectedProject = null;
             $this->projectId = null;
@@ -72,9 +74,9 @@ class TicketTimeline extends Page implements HasForms
     {
         $this->projectId = (string) $projectId;
         $this->selectedProject = Project::find($projectId);
-
+    
         if ($this->selectedProject && $this->projects->contains('id', $projectId)) {
-            $this->dispatch('redirectToProject', url: static::getUrl(['project_id' => $projectId]));
+            $this->redirect(static::getUrl(['project_id' => $projectId]), navigate: true);
         } else {
             Notification::make()
                 ->title('Project Not Found')
@@ -106,51 +108,63 @@ class TicketTimeline extends Page implements HasForms
             return ['data' => [], 'links' => []];
         }
     
-        $tickets = $this->tickets;
-        if ($tickets->isEmpty()) {
+        try {
+            $tickets = $this->tickets;
+            if ($tickets->isEmpty()) {
+                return ['data' => [], 'links' => []];
+            }
+    
+            $ganttTasks = [];
+            $now = Carbon::now();
+    
+            foreach ($tickets as $ticket) {
+                if (!$ticket->due_date) {
+                    continue;
+                }
+                
+                try {
+                    $startDate = $ticket->created_at ? Carbon::parse($ticket->created_at) : $now->copy()->subDays(7);
+                    $endDate = Carbon::parse($ticket->due_date);
+                    
+                    if ($endDate->lte($startDate)) {
+                        $endDate = $startDate->copy()->addDays(1);
+                    }
+                    
+                    $progress = $this->getSimpleProgress($ticket->status->name ?? '') / 100;
+                    $isOverdue = $endDate->lt($now) && $progress < 1;
+                    
+                    $taskData = [
+                        'id' => (string) $ticket->id,
+                        'text' => $this->truncateName($ticket->name ?? 'Untitled Ticket'),
+                        'start_date' => $startDate->format('d-m-Y H:i'),
+                        'end_date' => $endDate->format('d-m-Y H:i'),
+                        'duration' => max(1, $startDate->diffInDays($endDate)),
+                        'progress' => max(0, min(1, $progress)),
+                        'type' => 'task',
+                        'readonly' => true,
+                        'color' => $isOverdue ? '#ef4444' : ($ticket->status->color ?? '#3b82f6'),
+                        'textColor' => '#ffffff',
+                        'status' => $ticket->status->name ?? 'Unknown',
+                        'is_overdue' => $isOverdue
+                    ];
+                    
+                    $ganttTasks[] = $taskData;
+                    
+                } catch (\Exception $e) {
+                    \Log::error('Error processing ticket ' . $ticket->id . ': ' . $e->getMessage());
+                    continue;
+                }
+            }
+            
+            return [
+                'data' => $ganttTasks,
+                'links' => []
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error('Error generating gantt data: ' . $e->getMessage());
             return ['data' => [], 'links' => []];
         }
-    
-        $ganttTasks = [];
-        $now = Carbon::now();
-    
-        foreach ($tickets as $ticket) {
-            if (!$ticket->due_date) {
-                continue;
-            }
-            
-            $startDate = $ticket->created_at ? Carbon::parse($ticket->created_at) : $now->copy()->subDays(7);
-            $endDate = Carbon::parse($ticket->due_date);
-            
-            // Validasi tanggal
-            if ($endDate->lte($startDate)) {
-                $endDate = $startDate->copy()->addDays(1);
-            }
-            
-            $progress = $this->getSimpleProgress($ticket->status->name ?? '') / 100;
-            $isOverdue = $endDate->lt($now) && $progress < 1;
-            
-            // Format data untuk dhtmlxGantt
-            $ganttTasks[] = [
-                'id' => $ticket->id,
-                'text' => $this->truncateName($ticket->name ?? 'Untitled Ticket'),
-                'start_date' => $startDate->format('d-m-Y H:i'),
-                'end_date' => $endDate->format('d-m-Y H:i'),
-                'duration' => $startDate->diffInDays($endDate) ?: 1,
-                'progress' => $progress,
-                'type' => 'task',
-                'readonly' => true,
-                'color' => $isOverdue ? '#ef4444' : ($ticket->status->color ?? '#3b82f6'),
-                'textColor' => '#ffffff',
-                'status' => $ticket->status->name ?? 'Unknown',
-                'is_overdue' => $isOverdue
-            ];
-        }
-        
-        return [
-            'data' => $ganttTasks,
-            'links' => [] // Tidak ada dependencies untuk saat ini
-        ];
     }
 
     private function truncateName($name, $length = 50): string

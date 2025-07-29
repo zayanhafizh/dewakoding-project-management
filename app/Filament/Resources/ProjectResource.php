@@ -154,6 +154,7 @@ class ProjectResource extends Resource
             'index' => Pages\ListProjects::route('/'),
             'create' => Pages\CreateProject::route('/create'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
+            'gantt-chart' => Pages\ProjectGanttChart::route('/gantt-chart'),
         ];
     }
 

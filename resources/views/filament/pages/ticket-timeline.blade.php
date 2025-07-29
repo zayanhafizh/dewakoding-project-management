@@ -76,11 +76,77 @@
     @push('scripts')
         <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
         <script>
-            let ganttInitialized = false;
+            window.ganttState = window.ganttState || {
+                initialized: false,
+                currentProjectId: '{{ $projectId }}'
+            };
+            
+            function getGanttData() {
+                return @json($this->ganttData ?? ['data' => [], 'links' => []]);
+            }
+            
+            function waitForGantt(callback, maxAttempts = 50) {
+                let attempts = 0;
+                function check() {
+                    attempts++;
+                    if (typeof gantt !== 'undefined' && gantt.init) {
+                        callback();
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(check, 100);
+                    } else {
+                        console.error('dhtmlxGantt failed to load after', maxAttempts * 100, 'ms');
+                        showErrorMessage('Failed to load Gantt library');
+                    }
+                }
+                check();
+            }
+            
+            function waitForContainer(callback, maxAttempts = 30) {
+                let attempts = 0;
+                function check() {
+                    attempts++;
+                    const container = document.getElementById('gantt_here');
+                    if (container && container.offsetParent !== null) {
+                        callback();
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(check, 100);
+                    } else {
+                        console.error('Gantt container not found or not visible after', maxAttempts * 100, 'ms');
+                        showErrorMessage('Gantt container not available');
+                    }
+                }
+                check();
+            }
+            
+            function showErrorMessage(message = 'Error loading timeline') {
+                const container = document.getElementById('gantt_here');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-64 text-gray-500 gap-4">
+                            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h3 class="text-lg font-medium">${message}</h3>
+                            <p class="text-sm">Please refresh the page or contact support</p>
+                            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                Refresh Page
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            
+            function initializeGanttSafely() {
+                waitForContainer(() => {
+                    waitForGantt(() => {
+                        initializeGantt();
+                    });
+                });
+            }
             
             document.addEventListener('DOMContentLoaded', function() {
-                console.log('DOM ready, initializing dhtmlxGantt...');
-                initializeGantt();
+                console.log('DOM ready, initializing gantt safely...');
+                initializeGanttSafely();
                 
                 if (typeof Livewire !== 'undefined') {
                     setupLivewireListeners();
@@ -88,109 +154,168 @@
                     document.addEventListener('livewire:init', setupLivewireListeners);
                 }
             });
-
+            
+            document.addEventListener('livewire:navigated', function() {
+                console.log('Livewire navigated, reinitializing gantt...');
+                window.ganttState.currentProjectId = '{{ $projectId }}';
+                if (window.ganttState.initialized) {
+                    try {
+                        if (typeof gantt !== 'undefined' && gantt.clearAll) {
+                            gantt.clearAll();
+                        }
+                    } catch (e) {
+                        console.warn('Error clearing gantt:', e);
+                    }
+                    window.ganttState.initialized = false;
+                }
+                setTimeout(() => {
+                    initializeGanttSafely();
+                }, 100);
+            });
+        
             function setupLivewireListeners() {
-                Livewire.on('redirectToProject', (data) => {
-                    const url = data.url || (data[0] && data[0].url);
-                    if (url) window.location.href = url;
-                });
-                
                 Livewire.on('refreshData', () => {
                     console.log('Refreshing gantt chart...');
                     setTimeout(() => {
-                        initializeGantt();
+                        initializeGanttSafely();
                     }, 100);
                 });
+                
+                Livewire.on('refreshGanttChart', () => {
+                    console.log('Refreshing gantt chart after project selection...');
+                    setTimeout(() => {
+                        initializeGanttSafely();
+                    }, 200);
+                });
             }
-
+        
             function initializeGantt() {
                 try {
-                    const ganttData = @json($this->ganttData ?? ['data' => [], 'links' => []]);
-                    console.log('dhtmlxGantt data:', ganttData.data.length, 'tasks');
+                    const ganttData = getGanttData();
+                    console.log('Initializing with gantt data:', ganttData.data.length, 'tasks');
                     
                     if (!ganttData.data || ganttData.data.length === 0) {
                         console.log('No gantt data available');
                         return;
                     }
-
+            
                     const container = document.getElementById('gantt_here');
                     if (!container) {
                         console.error('Gantt container not found');
-                        return;
+                        throw new Error('Gantt container not found');
                     }
                     
-                    // Configure dhtmlxGantt
-                    gantt.config.date_format = "%d-%m-%Y %H:%i";
-                    
-                    // Updated scale configuration (new format)
-                    gantt.config.scales = [
-                        {unit: "month", step: 1, format: "%F %Y"},
-                        {unit: "day", step: 1, format: "%j"}
-                    ];
-                    
-                  
-                    gantt.config.readonly = true;
-                    gantt.config.drag_move = false;
-                    gantt.config.drag_resize = false;
-                    gantt.config.drag_progress = false;
-                    gantt.config.drag_links = false;
-                    
-                    // Layout configuration
-                    gantt.config.grid_width = 350;
-                    gantt.config.row_height = 40;
-                    gantt.config.task_height = 32;
-                    gantt.config.bar_height = 24;
-                    
-                    // Grid columns
-                    gantt.config.columns = [
-                        {name: "text", label: "Task Name", width: 200, tree: true},
-                        {name: "status", label: "Status", width: 100, align: "center"},
-                        {name: "duration", label: "Duration", width: 50, align: "center"}
-                    ];
-                    
-                    // Custom task styling
-                    gantt.templates.task_class = function(start, end, task) {
-                        return task.is_overdue ? "overdue" : "";
-                    };
-                    
-                    // Custom tooltip
-                    gantt.templates.tooltip_text = function(start, end, task) {
-                        return `<b>Task:</b> ${task.text}<br/>
-                                <b>Status:</b> ${task.status}<br/>
-                                <b>Duration:</b> ${task.duration} day(s)<br/>
-                                <b>Progress:</b> ${Math.round(task.progress * 100)}%<br/>
-                                <b>Start:</b> ${gantt.templates.tooltip_date_format(start)}<br/>
-                                <b>End:</b> ${gantt.templates.tooltip_date_format(end)}
-                                ${task.is_overdue ? '<br/><b style="color: #ef4444;">⚠️ OVERDUE</b>' : ''}`;
-                    };
-                    
-                    // Initialize gantt
-                    if (!ganttInitialized) {
-                        gantt.init("gantt_here");
-                        ganttInitialized = true;
+                    if (typeof gantt === 'undefined' || !gantt.init) {
+                        throw new Error('dhtmlxGantt library not properly loaded');
                     }
                     
-                    // Clear and load data
-                    gantt.clearAll();
-                    gantt.parse(ganttData);
+                    try {
+                        gantt.config.date_format = "%Y-%m-%d %H:%i";
+                        gantt.config.xml_date = "%Y-%m-%d %H:%i";
+                        
+                        gantt.config.scales = [
+                            {unit: "month", step: 1, format: "%F %Y"},
+                            {unit: "day", step: 1, format: "%j"}
+                        ];
+                        
+                        gantt.config.readonly = true;
+                        gantt.config.drag_move = false;
+                        gantt.config.drag_resize = false;
+                        gantt.config.drag_progress = false;
+                        gantt.config.drag_links = false;
+                        
+                        gantt.config.grid_width = 350;
+                        gantt.config.row_height = 40;
+                        gantt.config.task_height = 32;
+                        gantt.config.bar_height = 24;
+                        
+                        gantt.config.columns = [
+                            {name: "text", label: "Task Name", width: 200, tree: true},
+                            {name: "status", label: "Status", width: 100, align: "center"},
+                            {name: "duration", label: "Duration", width: 50, align: "center"}
+                        ];
+                        
+                        gantt.templates.task_class = function(start, end, task) {
+                            return task.is_overdue ? "overdue" : "";
+                        };
+                        
+                        gantt.templates.tooltip_text = function(start, end, task) {
+                            return `<b>Task:</b> ${task.text}<br/>
+                                    <b>Status:</b> ${task.status}<br/>
+                                    <b>Duration:</b> ${task.duration} day(s)<br/>
+                                    <b>Progress:</b> ${Math.round(task.progress * 100)}%<br/>
+                                    <b>Start:</b> ${gantt.templates.tooltip_date_format(start)}<br/>
+                                    <b>End:</b> ${gantt.templates.tooltip_date_format(end)}
+                                    ${task.is_overdue ? '<br/><b style="color: #ef4444;">⚠️ OVERDUE</b>' : ''}`;
+                        };
+                    } catch (configError) {
+                        console.error('Error configuring gantt:', configError);
+                        throw new Error('Failed to configure Gantt chart');
+                    }
                     
-                    console.log('dhtmlxGantt initialized successfully');
+                    try {
+                        if (!window.ganttState.initialized) {
+                            gantt.init("gantt_here");
+                            window.ganttState.initialized = true;
+                            console.log('Gantt initialized for the first time');
+                        }
+                    } catch (initError) {
+                        console.error('Error initializing gantt:', initError);
+                        throw new Error('Failed to initialize Gantt chart');
+                    }
+                    
+                    try {
+                        gantt.clearAll();
+                        
+                        if (!Array.isArray(ganttData.data)) {
+                            throw new Error('Invalid gantt data format: data must be an array');
+                        }
+                        
+
+                        const processedData = {
+                            data: ganttData.data.map(task => {
+                                const convertDate = (dateStr) => {
+                                    if (!dateStr) return dateStr;
+                                    try {
+                                        const parts = dateStr.split(' ');
+                                        const datePart = parts[0];
+                                        const timePart = parts[1] || '00:00';
+                                        const [day, month, year] = datePart.split('-');
+                                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${timePart}`;
+                                    } catch (e) {
+                                        console.warn('Error converting date:', dateStr, e);
+                                        return dateStr;
+                                    }
+                                };
+                                
+                                return {
+                                    ...task,
+                                    start_date: convertDate(task.start_date),
+                                    end_date: convertDate(task.end_date)
+                                };
+                            }),
+                            links: ganttData.links || []
+                        };
+                        
+                        for (let i = 0; i < processedData.data.length; i++) {
+                            const task = processedData.data[i];
+                            if (!task.id || !task.text || !task.start_date || !task.end_date) {
+                                console.warn('Invalid task data at index', i, task);
+                                continue;
+                            }
+                        }
+                        
+                        gantt.parse(processedData);
+                        console.log('dhtmlxGantt initialized successfully with', processedData.data.length, 'tasks');
+                        
+                    } catch (parseError) {
+                        console.error('Error parsing gantt data:', parseError);
+                        throw new Error('Failed to load Gantt data');
+                    }
                     
                 } catch (error) {
                     console.error('Error initializing dhtmlxGantt:', error);
-                    
-                    const container = document.getElementById('gantt_here');
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="flex flex-col items-center justify-center h-64 text-gray-500 gap-4">
-                                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <h3 class="text-lg font-medium">Error loading timeline</h3>
-                                <p class="text-sm">Please refresh the page or contact support</p>
-                            </div>
-                        `;
-                    }
+                    showErrorMessage(error.message || 'Error loading timeline');
                 }
             }
         </script>
