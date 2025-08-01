@@ -91,8 +91,8 @@ class UserContributions extends Page implements HasForms
     private function getUserDailyActivity(int $userId): array
     {
         $days = $this->getDaysFromTimeRange();
-        $startDate = Carbon::now()->subDays($days);
-        $endDate = Carbon::now();
+        $endDate = Carbon::now(); // Hari ini sebagai tanggal akhir
+        $startDate = $endDate->copy()->subDays($days - 1); // Mundur sesuai jumlah hari
         
         $activity = [];
         
@@ -106,7 +106,7 @@ class UserContributions extends Page implements HasForms
         try {
             // Count ticket creations
             $ticketCreations = Ticket::where('created_by', $userId)
-                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
                 ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
                 ->groupBy('date')
                 ->pluck('count', 'date')
@@ -114,7 +114,7 @@ class UserContributions extends Page implements HasForms
             
             // Count ticket status changes
             $statusChanges = TicketHistory::where('user_id', $userId)
-                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
                 ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
                 ->groupBy('date')
                 ->pluck('count', 'date')
@@ -122,7 +122,7 @@ class UserContributions extends Page implements HasForms
             
             // Count comments
             $comments = TicketComment::where('user_id', $userId)
-                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
                 ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
                 ->groupBy('date')
                 ->pluck('count', 'date')
@@ -197,22 +197,31 @@ class UserContributions extends Page implements HasForms
     public function getWeeksData(): array
     {
         $days = $this->getDaysFromTimeRange();
-        $startDate = Carbon::now()->subDays($days)->startOfWeek();
-        $weeks = [];
+        $endDate = Carbon::now(); // Hari ini sebagai tanggal akhir
+        $startDate = $endDate->copy()->subDays($days - 1)->startOfWeek(); // Mulai dari awal minggu
         
-        $weeksCount = ceil($days / 7);
+        $weeks = [];
         $current = $startDate->copy();
+        
+        // Hitung minggu yang diperlukan untuk mencakup seluruh rentang
+        $totalDays = $startDate->diffInDays($endDate) + 1;
+        $weeksCount = ceil($totalDays / 7);
         
         for ($week = 0; $week < $weeksCount; $week++) {
             $weekData = [];
             for ($day = 0; $day < 7; $day++) {
-                $weekData[] = [
-                    'date' => $current->format('Y-m-d'),
-                    'dayOfWeek' => $current->dayOfWeek
-                ];
+                // Hanya tambahkan hari jika masih dalam rentang yang valid
+                if ($current <= $endDate) {
+                    $weekData[] = [
+                        'date' => $current->format('Y-m-d'),
+                        'dayOfWeek' => $current->dayOfWeek
+                    ];
+                }
                 $current->addDay();
             }
-            $weeks[] = $weekData;
+            if (!empty($weekData)) {
+                $weeks[] = $weekData;
+            }
         }
         
         return $weeks;
