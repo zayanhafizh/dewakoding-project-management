@@ -12,15 +12,16 @@ use Livewire\Attributes\On;
 class EpicsOverview extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-flag';
-
     protected static string $view = 'filament.pages.epics-overview';
-
     protected static ?string $navigationGroup = 'Project Management';
-
     protected static ?string $navigationLabel = 'Epics';
-
+    protected static ?string $title = 'Epics Overview';
     protected static ?int $navigationSort = 3;
 
+    public function getSubheading(): ?string
+    {
+        return 'Manage and track project epics with their associated tickets and progress';
+    }
     // UPDATED: Add URL parameter support
     protected static ?string $slug = 'epics-overview/{project_id?}';
 

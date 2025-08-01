@@ -18,17 +18,16 @@ use Illuminate\Support\Facades\Storage;
 class ProjectBoard extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-view-columns';
-
     protected static string $view = 'filament.pages.project-board';
-
     protected static ?string $title = 'Project Board';
-
     protected static ?string $navigationLabel = 'Project Board';
-
     protected static ?string $navigationGroup = 'Project Management';
-
     protected static ?int $navigationSort = 2;
 
+    public function getSubheading(): ?string
+    {
+        return 'Kanban board for ticket management';
+    }
     protected static ?string $slug = 'project-board/{project_id?}';
 
     public ?Project $selectedProject = null;
@@ -40,6 +39,8 @@ class ProjectBoard extends Page
     public ?Ticket $selectedTicket = null;
 
     public ?int $selectedProjectId = null;
+    
+    public array $sortOrders = [];
 
     public function mount($project_id = null): void
     {
@@ -99,11 +100,44 @@ class ProjectBoard extends Page
     
         $this->ticketStatuses = $this->selectedProject->ticketStatuses()
             ->with(['tickets' => function ($query) {
-                 $query->with(['assignees', 'status', 'priority'])
-                    ->orderBy('id', 'asc');
+                 $query->with(['assignees', 'status', 'priority']);
+                 $query->orderBy('id', 'asc');
             }])
             ->orderBy('sort_order')
             ->get();
+            
+        $this->ticketStatuses->each(function ($status) {
+            $sortOrder = $this->sortOrders[$status->id] ?? 'date_created_newest';
+            $status->tickets = $this->applySorting($status->tickets, $sortOrder);
+        });
+    }
+    
+    public function setSortOrder($statusId, $sortOrder)
+    {
+        $this->sortOrders[$statusId] = $sortOrder;
+        $this->loadTicketStatuses();
+    }
+    
+    private function applySorting($tickets, $sortOrder)
+    {
+        switch ($sortOrder) {
+            case 'date_created_newest':
+                return $tickets->sortByDesc('created_at');
+            case 'date_created_oldest':
+                return $tickets->sortBy('created_at');
+            case 'card_name_alphabetical':
+                return $tickets->sortBy('name');
+            case 'due_date':
+                return $tickets->sortBy(function ($ticket) {
+                    return $ticket->due_date ?? '9999-12-31';
+                });
+            case 'priority':
+                return $tickets->sortBy(function ($ticket) {
+                    return $ticket->priority ? $ticket->priority->id : 999;
+                });
+            default:
+                return $tickets->sortByDesc('created_at');
+        }
     }
 
     #[On('ticket-moved')]

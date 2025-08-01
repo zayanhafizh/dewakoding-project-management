@@ -24,6 +24,10 @@ class TicketTimeline extends Page implements HasForms
     protected static ?string $navigationGroup = 'Project Management';
     protected static ?string $slug = 'ticket-timeline/{project_id?}';
 
+    public function getSubheading(): ?string
+    {
+        return 'View project tickets in Gantt chart timeline';
+    }
     public ?string $projectId = null;
     public Collection $projects;
     public ?Project $selectedProject = null;

@@ -1,30 +1,60 @@
 <x-filament-panels::page>
     
     {{-- Project Selector --}}
-    <div class="mb-6">
-        <x-filament::section>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ $selectedProject ? $selectedProject->name : 'Select Project' }}
-                </h2>
-                
-                <div class="w-full sm:w-auto">
-                    <x-filament::input.wrapper>
-                        <x-filament::input.select
-                            wire:model.live="selectedProjectId"
-                            class="w-full"
-                        >
-                            <option value="">Select Project</option>
-                            @foreach($projects as $project)
-                                <option value="{{ $project->id }}" {{ $selectedProjectId == $project->id ? 'selected' : '' }}>
-                                    {{ $project->name }}
-                                </option>
-                            @endforeach
-                        </x-filament::input.select>
-                    </x-filament::input.wrapper>
+    <div class="mb-8" x-data="{ showProjectSelector: false }">
+        <!-- Toggle Button -->
+        <div class="mb-4">
+            <button 
+                @click="showProjectSelector = !showProjectSelector"
+                class="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showProjectSelector }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+                <span>{{ $selectedProject ? $selectedProject->name : 'Select Project' }}</span>
+                @if($selectedProject)
+                    <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                        Selected
+                    </span>
+                @endif
+            </button>
+        </div>
+        
+        <!-- Project Selector (Collapsible) -->
+        <div 
+            x-show="showProjectSelector" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-2"
+        >
+            <x-filament::section>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-white">
+                        Choose Project
+                    </h2>
+                    
+                    <div class="w-full sm:w-auto">
+                        <x-filament::input.wrapper>
+                            <x-filament::input.select
+                                wire:model.live="selectedProjectId"
+                                class="w-full"
+                                @change="showProjectSelector = false"
+                            >
+                                <option value="">Select Project</option>
+                                @foreach($projects as $project)
+                                    <option value="{{ $project->id }}" {{ $selectedProjectId == $project->id ? 'selected' : '' }}>
+                                        {{ $project->name }}
+                                    </option>
+                                @endforeach
+                            </x-filament::input.select>
+                        </x-filament::input.wrapper>
+                    </div>
                 </div>
-            </div>
-        </x-filament::section>
+            </x-filament::section>
+        </div>
     </div>
 
     @if($selectedProject)
@@ -388,20 +418,97 @@
                 @foreach ($ticketStatuses as $status)
                     <div 
                         class="status-column rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900"
-                        style="width: calc(85vw - 2rem); min-width: 280px; max-width: 350px; @media (min-width: 640px) { width: calc((100vw - 6rem) / 2); } @media (min-width: 1024px) { width: calc((100vw - 8rem) / 3); } @media (min-width: 1280px) { width: calc((100vw - 10rem) / 4); }"
+                        style="width: calc(85vw - 2rem); min-width: 280px; max-width: 350px; height: 700px; @media (min-width: 640px) { width: calc((100vw - 6rem) / 2); height: 750px; } @media (min-width: 1024px) { width: calc((100vw - 8rem) / 3); height: 800px; } @media (min-width: 1280px) { width: calc((100vw - 10rem) / 4); height: 850px; }"
                         data-status-id="{{ $status->id }}"
                     >
                         <div 
-                            class="px-4 py-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700"
+                            class="px-4 py-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700 flex-shrink-0"
                             style="background-color: {{ $status->color ?? '#f3f4f6' }};"
                         >
-                            <h3 class="font-medium flex items-center justify-between" style="color: white; text-shadow: 0px 0px 1px rgba(0,0,0,0.5);">
-                                <span>{{ $status->name }}</span>
-                                <span class="text-sm opacity-80">{{ $status->tickets->count() }}</span>
-                            </h3>
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-medium flex items-center gap-2" style="color: white; text-shadow: 0px 0px 1px rgba(0,0,0,0.5);">
+                                    <span>{{ $status->name }}</span>
+                                    <span class="text-sm opacity-80">{{ $status->tickets->count() }}</span>
+                                </h3>
+                                
+                                <!-- Sort Menu Dropdown -->
+                                <div class="relative" x-data="{ open: false }">
+                                    <button 
+                                        @click="open = !open" 
+                                        @click.away="open = false"
+                                        class="p-1 rounded hover:bg-black hover:bg-opacity-20 transition-colors"
+                                        style="color: white;"
+                                    >
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                                        </svg>
+                                    </button>
+                                    
+                                    <div 
+                                        x-show="open" 
+                                        x-transition:enter="transition ease-out duration-100"
+                                        x-transition:enter-start="transform opacity-0 scale-95"
+                                        x-transition:enter-end="transform opacity-100 scale-100"
+                                        x-transition:leave="transition ease-in duration-75"
+                                        x-transition:leave-start="transform opacity-100 scale-100"
+                                        x-transition:leave-end="transform opacity-0 scale-95"
+                                        class="absolute top-8 left-0 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                                        style="display: none; transform: translateX(-100%);"
+                                    >
+                                        <div class="p-2">
+                                            <div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                                                <span class="text-sm font-medium text-gray-900 dark:text-white">Sort list</span>
+                                                <button @click="open = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            
+                                            <div class="py-1">
+                                                <button 
+                                                    wire:click="setSortOrder({{ $status->id }}, 'date_created_newest')"
+                                                    @click="open = false"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                >
+                                                    Date created (newest first)
+                                                </button>
+                                                <button 
+                                                    wire:click="setSortOrder({{ $status->id }}, 'date_created_oldest')"
+                                                    @click="open = false"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                >
+                                                    Date created (oldest first)
+                                                </button>
+                                                <button 
+                                                    wire:click="setSortOrder({{ $status->id }}, 'card_name_alphabetical')"
+                                                    @click="open = false"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                >
+                                                    Card name (alphabetically)
+                                                </button>
+                                                <button 
+                                                    wire:click="setSortOrder({{ $status->id }}, 'due_date')"
+                                                    @click="open = false"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                >
+                                                    Due date
+                                                </button>
+                                                <button 
+                                                    wire:click="setSortOrder({{ $status->id }}, 'priority')"
+                                                    @click="open = false"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                >
+                                                    Priority
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div class="p-3 flex flex-col gap-3 h-[calc(100vh-22rem)] sm:h-[calc(100vh-20rem)] overflow-y-auto">
+                        <div class="p-3 flex flex-col gap-3 flex-1 overflow-y-auto" style="max-height: calc(100% - 60px);">
                             @foreach ($status->tickets as $ticket)
                                 <div 
                                     class="ticket-card bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-move"
