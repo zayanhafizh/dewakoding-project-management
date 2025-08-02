@@ -91,12 +91,11 @@ class UserContributions extends Page implements HasForms
     private function getUserDailyActivity(int $userId): array
     {
         $days = $this->getDaysFromTimeRange();
-        $endDate = Carbon::now(); // Hari ini sebagai tanggal akhir
-        $startDate = $endDate->copy()->subDays($days - 1); // Mundur sesuai jumlah hari
+        $endDate = Carbon::now(config('app.timezone')); 
+        $startDate = $endDate->copy()->subDays($days - 1); 
         
         $activity = [];
         
-        // Initialize all days with 0 activity
         $current = $startDate->copy();
         while ($current <= $endDate) {
             $activity[$current->format('Y-m-d')] = 0;
@@ -104,28 +103,48 @@ class UserContributions extends Page implements HasForms
         }
         
         try {
-            // Count ticket creations
             $ticketCreations = Ticket::where('created_by', $userId)
-                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-                ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                ->groupBy('date')
-                ->pluck('count', 'date')
+                ->whereBetween('created_at', [
+                    $startDate->startOfDay()->utc(), 
+                    $endDate->endOfDay()->utc()
+                ])
+                ->get()
+                ->groupBy(function($ticket) {
+                    return $ticket->created_at->setTimezone(config('app.timezone'))->format('Y-m-d');
+                })
+                ->map(function($group) {
+                    return $group->count();
+                })
                 ->toArray();
             
             // Count ticket status changes
             $statusChanges = TicketHistory::where('user_id', $userId)
-                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-                ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                ->groupBy('date')
-                ->pluck('count', 'date')
+                ->whereBetween('created_at', [
+                    $startDate->startOfDay()->utc(), 
+                    $endDate->endOfDay()->utc()
+                ])
+                ->get()
+                ->groupBy(function($history) {
+                    return $history->created_at->setTimezone(config('app.timezone'))->format('Y-m-d');
+                })
+                ->map(function($group) {
+                    return $group->count();
+                })
                 ->toArray();
             
             // Count comments
             $comments = TicketComment::where('user_id', $userId)
-                ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
-                ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                ->groupBy('date')
-                ->pluck('count', 'date')
+                ->whereBetween('created_at', [
+                    $startDate->startOfDay()->utc(), 
+                    $endDate->endOfDay()->utc()
+                ])
+                ->get()
+                ->groupBy(function($comment) {
+                    return $comment->created_at->setTimezone(config('app.timezone'))->format('Y-m-d');
+                })
+                ->map(function($group) {
+                    return $group->count();
+                })
                 ->toArray();
             
             // Merge all activities
@@ -142,22 +161,62 @@ class UserContributions extends Page implements HasForms
         return $activity;
     }
 
+    public function getWeeksData(): array
+    {
+        $days = $this->getDaysFromTimeRange();
+        $endDate = Carbon::now(config('app.timezone')); 
+        $startDate = $endDate->copy()->subDays($days - 1)->startOfWeek(Carbon::SUNDAY); 
+        
+        $weeks = [];
+        $current = $startDate->copy();
+        
+        $totalDays = $startDate->diffInDays($endDate) + 1;
+        $weeksCount = ceil($totalDays / 7);
+        
+        for ($week = 0; $week < $weeksCount; $week++) {
+            $weekData = [];
+            for ($day = 0; $day < 7; $day++) {
+                if ($current <= $endDate) {
+                    $weekData[] = [
+                        'date' => $current->format('Y-m-d'),
+                        'dayOfWeek' => $current->dayOfWeek
+                    ];
+                }
+                $current->addDay();
+            }
+            if (!empty($weekData)) {
+                $weeks[] = $weekData;
+            }
+        }
+        
+        return $weeks;
+    }
+
     private function getUserStats(int $userId): array
     {
         $days = $this->getDaysFromTimeRange();
-        $startDate = Carbon::now()->subDays($days);
-        $endDate = Carbon::now();
+        $endDate = Carbon::now(config('app.timezone')); 
+        $startDate = $endDate->copy()->subDays($days - 1); 
         
         try {
             return [
                 'tickets_created' => Ticket::where('created_by', $userId)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [
+                        $startDate->startOfDay()->utc(), 
+                        $endDate->endOfDay()->utc()
+                    ])
                     ->count(),
                 'status_changes' => TicketHistory::where('user_id', $userId)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [
+                        $startDate->startOfDay()->utc(), 
+                        $endDate->endOfDay()->utc()
+                    ])
                     ->count(),
                 'comments_made' => TicketComment::where('user_id', $userId)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->whereBetween('created_at', [
+                        $startDate->startOfDay()->utc(), 
+                        $endDate->endOfDay()->utc()
+                    ])
                     ->count(),
                 'active_days' => collect($this->getUserDailyActivity($userId))
                     ->filter(fn($count) => $count > 0)
@@ -192,39 +251,6 @@ class UserContributions extends Page implements HasForms
         if ($count <= 5) return 'medium';
         if ($count <= 10) return 'high';
         return 'very-high';
-    }
-
-    public function getWeeksData(): array
-    {
-        $days = $this->getDaysFromTimeRange();
-        $endDate = Carbon::now(); // Hari ini sebagai tanggal akhir
-        $startDate = $endDate->copy()->subDays($days - 1)->startOfWeek(); // Mulai dari awal minggu
-        
-        $weeks = [];
-        $current = $startDate->copy();
-        
-        // Hitung minggu yang diperlukan untuk mencakup seluruh rentang
-        $totalDays = $startDate->diffInDays($endDate) + 1;
-        $weeksCount = ceil($totalDays / 7);
-        
-        for ($week = 0; $week < $weeksCount; $week++) {
-            $weekData = [];
-            for ($day = 0; $day < 7; $day++) {
-                // Hanya tambahkan hari jika masih dalam rentang yang valid
-                if ($current <= $endDate) {
-                    $weekData[] = [
-                        'date' => $current->format('Y-m-d'),
-                        'dayOfWeek' => $current->dayOfWeek
-                    ];
-                }
-                $current->addDay();
-            }
-            if (!empty($weekData)) {
-                $weeks[] = $weekData;
-            }
-        }
-        
-        return $weeks;
     }
 
     public function getTimeRangeLabel(): string
