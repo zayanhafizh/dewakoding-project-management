@@ -17,6 +17,9 @@ A Laravel Filament 3 application for managing projects with ticket management an
 - Comment system for tickets to facilitate team discussions
 - Kanban board view for visualizing ticket progress
 - Assign ticket to multi users
+- User contributions chart
+- Timeline view
+- Export ticket data to CSV
 
 ## Requirements
 
