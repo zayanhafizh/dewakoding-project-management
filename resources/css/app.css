@@ -10,3 +10,14 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* View-only mode styles */
+.view-only-mode .ticket-card {
+    cursor: default !important;
+    opacity: 0.8;
+}
+
+.view-only-mode .ticket-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}

@@ -146,6 +146,15 @@ class ProjectBoard extends Page
         $ticket = Ticket::find($ticketId);
 
         if ($ticket && $ticket->project_id === $this->selectedProject?->id) {
+            if (!$this->canManageTicket($ticket)) {
+                Notification::make()
+                    ->title('Permission Denied')
+                    ->body('You do not have permission to move this ticket.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
             $ticket->update([
                 'ticket_status_id' => $newStatusId,
             ]);
@@ -214,7 +223,7 @@ class ProjectBoard extends Page
             Action::make('new_ticket')
                 ->label('New Ticket')
                 ->icon('heroicon-m-plus')
-                ->visible(fn () => $this->selectedProject !== null && auth()->user()->hasRole(['super_admin']))
+                ->visible(fn () => $this->selectedProject !== null && auth()->user()->can('create_ticket'))
                 ->url(fn (): string => TicketResource::getUrl('create', [
                     'project_id' => $this->selectedProject?->id,
                     'ticket_status_id' => $this->selectedProject?->ticketStatuses->first()?->id,
@@ -227,7 +236,7 @@ class ProjectBoard extends Page
                 ->color('warning'),
             
             ExportTicketsAction::make()
-                ->visible(fn () => $this->selectedProject !== null),
+                ->visible(fn () => $this->selectedProject !== null && auth()->user()->hasRole(['super_admin'])),
         ];
     }
 
@@ -237,6 +246,15 @@ class ProjectBoard extends Page
             return false;
         }
 
+        // Check Filament Shield permission for viewing tickets
+        if (! auth()->user()->can('view_ticket')) {
+            return false;
+        }
+
+        // Additional business logic: user can view if they are:
+        // 1. Super admin (already covered by permission above)
+        // 2. The ticket creator
+        // 3. Assigned to the ticket
         return auth()->user()->hasRole(['super_admin'])
             || $ticket->user_id === auth()->id()
             || $ticket->assignees()->where('users.id', auth()->id())->exists();
@@ -248,6 +266,15 @@ class ProjectBoard extends Page
             return false;
         }
 
+        // Check Filament Shield permission for updating tickets
+        if (! auth()->user()->can('update_ticket')) {
+            return false;
+        }
+
+        // Additional business logic: user can edit if they are:
+        // 1. Super admin (already covered by permission above)
+        // 2. The ticket creator
+        // 3. Assigned to the ticket
         return auth()->user()->hasRole(['super_admin'])
             || $ticket->user_id === auth()->id()
             || $ticket->assignees()->where('users.id', auth()->id())->exists();
@@ -259,6 +286,15 @@ class ProjectBoard extends Page
             return false;
         }
 
+        // Check Filament Shield permission for updating tickets (moving is updating)
+        if (! auth()->user()->can('update_ticket')) {
+            return false;
+        }
+
+        // Additional business logic: user can manage if they are:
+        // 1. Super admin (already covered by permission above)
+        // 2. The ticket creator
+        // 3. Assigned to the ticket
         return auth()->user()->hasRole(['super_admin'])
             || $ticket->user_id === auth()->id()
             || $ticket->assignees()->where('users.id', auth()->id())->exists();
@@ -338,5 +374,17 @@ class ProjectBoard extends Page
                 ->danger()
                 ->send();
         }
+    }
+
+    /**
+     * Check if current user can move tickets on the board
+     * Uses Filament Shield permissions to determine access
+     * 
+     * @return bool
+     */
+    public function canMoveTickets(): bool
+    {
+        // Check Filament Shield permission for updating tickets
+        return auth()->user()->can('update_ticket');
     }
 }

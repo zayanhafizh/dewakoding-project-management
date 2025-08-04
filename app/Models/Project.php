@@ -61,6 +61,13 @@ class Project extends Model
             ->withTimestamps();
     }
 
+    // Add this method for Filament RelationManager compatibility
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'project_members')
+            ->withTimestamps();
+    }
+
     public function epics(): HasMany
     {
         return $this->hasMany(Epic::class);
