@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Carbon\Carbon;
 
 class Project extends Model
@@ -92,5 +93,17 @@ class Project extends Model
         }
 
         return $today->diffInDays($endDate);
+    }
+    
+    public function externalAccess(): HasOne
+    {
+        return $this->hasOne(ExternalAccess::class);
+    }
+    
+    public function generateExternalAccess()
+    {
+        $this->externalAccess()?->delete();
+    
+        return ExternalAccess::generateForProject($this->id);
     }
 }
