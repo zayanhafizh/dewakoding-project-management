@@ -147,10 +147,7 @@ class ExternalDashboard extends Component
             'total_team' => $this->project->users()->count(),
             'total_tickets' => $this->project->tickets()->count(),
             'remaining_days' => $remainingDays,
-            'total_epic' => $this->project->tickets()
-                ->whereHas('priority', function($q) {
-                    $q->whereIn('name', ['Epic', 'High', 'Critical']);
-                })->count(),
+            'total_epic' => $this->project->epics()->count(),
             
             // Keep the old keys for backward compatibility
             'completed_tickets' => $this->project->tickets()
