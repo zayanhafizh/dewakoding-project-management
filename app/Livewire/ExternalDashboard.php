@@ -326,6 +326,17 @@ class ExternalDashboard extends Component
         $this->loadTickets();
     }
 
+    public function logout()
+    {
+        // Clear session data
+        Session::forget('external_authenticated_' . $this->token);
+        Session::forget('external_project_id');
+        Session::forget('external_authenticated');
+        
+        // Redirect to login page
+        return redirect()->route('external.login', $this->token);
+    }
+
     public function render()
     {
         return view('livewire.external-dashboard')

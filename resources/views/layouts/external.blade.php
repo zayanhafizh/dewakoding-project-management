@@ -33,7 +33,7 @@
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <h1 class="text-lg font-medium text-gray-900">
-                        External Dashboard
+                        {{ config('app.name') }}
                     </h1>
                 </div>
                 <div class="flex items-center">
@@ -46,15 +46,15 @@
     </nav>
     
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-8 px-6">
+    <main class="min-h-screen pb-20">
         {{ $slot }}
     </main>
     
     <!-- Simple Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-16">
+    <footer class="bg-white border-t border-gray-200 mt-auto">
         <div class="max-w-7xl mx-auto py-6 px-6">
             <div class="text-center text-sm text-gray-500">
-                <p>&copy; {{ date('Y') }} External Dashboard. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} Dewakoding Project Management. All rights reserved.</p>
             </div>
         </div>
     </footer>

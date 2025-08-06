@@ -1,24 +1,22 @@
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex items-center justify-between">
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-900">{{ $project->name }}</h1>
-                    @if($project->start_date && $project->end_date)
-                        <p class="mt-1 text-sm text-gray-600">
-                            <span class="font-medium">Duration:</span> 
-                            {{ $project->start_date->format('M d, Y') }} - {{ $project->end_date->format('M d, Y') }}
-                        </p>
-                    @endif
+                    <h1 class="text-3xl font-bold text-gray-900">{{ $project->name }}</h1>
+                    <p class="text-gray-600 mt-1">{{ config('app.name') }} - External Dashboard</p>
                 </div>
-                <div class="text-right">
-                    @if($projectStats['remaining_days'] !== null)
-                        <div class="text-sm text-gray-600">Days Remaining</div>
-                        <div class="text-2xl font-semibold {{ $projectStats['remaining_days'] < 0 ? 'text-red-600' : 'text-gray-900' }}">
-                            {{ $projectStats['remaining_days'] }}
-                        </div>
-                    @endif
+                <div class="flex items-center space-x-4">
+                    <button 
+                        wire:click="logout" 
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
         </div>
