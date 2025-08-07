@@ -20,6 +20,7 @@ A Laravel Filament 3 application for managing projects with ticket management an
 - User contributions chart
 - Timeline view
 - Export ticket data to CSV
+- External dashboard view (Client Portal)
 
 ## Requirements
 
@@ -30,6 +31,7 @@ A Laravel Filament 3 application for managing projects with ticket management an
 
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-2.jpeg)
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-6.jpeg)
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-7.jpeg)
 
 
 ## Installation
