@@ -5,14 +5,13 @@ namespace App\Livewire;
 use App\Models\ExternalAccess;
 use App\Models\Project;
 use App\Models\Ticket;
-use App\Models\TicketStatus;
-use App\Models\TicketPriority;
 use App\Models\TicketHistory;
-use Livewire\Component;
-use Illuminate\Support\Facades\Session;
+use App\Models\TicketPriority;
+use App\Models\TicketStatus;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Session;
+use Livewire\Component;
 
 class ExternalDashboard extends Component
 {
@@ -46,7 +45,6 @@ class ExternalDashboard extends Component
     {
         $this->token = $token;
         
-        // Cek apakah sudah terautentikasi
         if (!Session::get('external_authenticated_' . $token)) {
             return redirect()->route('external.login', $token);
         }
@@ -61,7 +59,6 @@ class ExternalDashboard extends Component
 
         $this->project = $externalAccess->project;
         
-        // Load statuses and priorities
         $this->statuses = TicketStatus::where('project_id', $this->project->id)
             ->orderBy('name')
             ->get();
@@ -69,7 +66,6 @@ class ExternalDashboard extends Component
         $this->priorities = TicketPriority::orderBy('name')
             ->get();
 
-        // Update last accessed
         $externalAccess->updateLastAccessed();
 
         $this->loadTickets();
@@ -115,15 +111,6 @@ class ExternalDashboard extends Component
                     'count' => $status->tickets_count
                 ];
             })
-            ->toArray();
-            
-        // Load tickets by priority
-        $this->ticketsByPriority = $this->project->tickets()
-            ->leftJoin('ticket_priorities', 'tickets.priority_id', '=', 'ticket_priorities.id')
-            ->selectRaw('COALESCE(ticket_priorities.name, "No Priority") as priority_name, COUNT(*) as count')
-            ->groupBy('ticket_priorities.id', 'ticket_priorities.name')
-            ->orderBy('ticket_priorities.name')
-            ->pluck('count', 'priority_name')
             ->toArray();
             
         // Load recent tickets
@@ -205,15 +192,15 @@ class ExternalDashboard extends Component
                 ->whereNotNull('due_date')
                 ->orderBy('due_date')
                 ->get();
-
+    
             if ($tickets->isEmpty()) {
                 $this->ganttData = ['data' => [], 'links' => []];
                 return;
             }
-
+    
             $ganttTasks = [];
             $now = Carbon::now();
-
+    
             foreach ($tickets as $ticket) {
                 if (!$ticket->due_date) {
                     continue;
@@ -258,10 +245,18 @@ class ExternalDashboard extends Component
                 'links' => []
             ];
             
+            $this->dispatch('refreshGanttChart');
+            
         } catch (\Exception $e) {
             \Log::error('Error generating gantt data: ' . $e->getMessage());
             $this->ganttData = ['data' => [], 'links' => []];
         }
+    }
+    
+    // Tambahkan method untuk refresh gantt data
+    public function refreshGanttData()
+    {
+        $this->loadGanttData();
     }
     
     private function truncateName($name, $length = 50): string

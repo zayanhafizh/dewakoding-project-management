@@ -13,12 +13,13 @@ class EditProject extends EditRecord
 {
     protected static string $resource = ProjectResource::class;
 
+
     protected function getHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),
             Actions\Action::make('external_access')
-                ->label('External Access')
+                ->label('External Dashboard')
                 ->icon('heroicon-o-globe-alt')
                 ->color('info')
                 ->modalHeading('External Dashboard Access')

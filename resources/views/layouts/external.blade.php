@@ -20,6 +20,9 @@
     <!-- Livewire Styles -->
     @livewireStyles
     
+    <!-- Additional Styles -->
+    @stack('styles')
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -61,6 +64,9 @@
     
     <!-- Livewire Scripts -->
     @livewireScripts
+    
+    <!-- Additional Scripts -->
+    @stack('scripts')
     
     <!-- Simplified JavaScript -->
     <script>
