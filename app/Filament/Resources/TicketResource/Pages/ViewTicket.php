@@ -53,10 +53,16 @@ class ViewTicket extends ViewRecord
                 ->action(function (array $data) {
                     $ticket = $this->getRecord();
 
-                    $ticket->comments()->create([
+                    $comment = $ticket->comments()->create([
                         'user_id' => auth()->id(),
                         'comment' => $data['comment'],
                     ]);
+
+                    // Mark related notifications as read for current user
+                    auth()->user()->notifications()
+                        ->where('data->ticket_id', $ticket->id)
+                        ->whereNull('read_at')
+                        ->update(['read_at' => now()]);
 
                     Notification::make()
                         ->title('Comment added successfully')
