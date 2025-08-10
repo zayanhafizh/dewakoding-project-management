@@ -47,6 +47,11 @@ class Notification extends Model
         return $this->belongsTo(Ticket::class, 'data->ticket_id');
     }
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function getTicketAttribute()
     {
         if (isset($this->data['ticket_id'])) {

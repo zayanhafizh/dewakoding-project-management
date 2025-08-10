@@ -32,8 +32,10 @@ class NotificationResource extends Resource
     {
         return $table
             ->query(fn () => 
-                Notification::where('user_id', auth()->id())
-                    ->with(['ticket.project']) // Eager load ticket dan project
+                // Show all notifications for super_admin, only user's notifications for others
+                auth()->user()->hasRole('super_admin') 
+                    ? Notification::with(['user', 'ticket.project'])
+                    : Notification::where('user_id', auth()->id())->with(['ticket.project'])
             )
             ->columns([
                 Tables\Columns\IconColumn::make('read_status')
@@ -42,7 +44,15 @@ class NotificationResource extends Resource
                     ->color(fn (Notification $record) => $record->isUnread() ? 'warning' : 'gray')
                     ->size('sm'),
                     
-                 Tables\Columns\TextColumn::make('message')
+                // Add user column for super_admin
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('User')
+                    ->badge()
+                    ->color('info')
+                    ->searchable()
+                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
+                    
+                Tables\Columns\TextColumn::make('message')
                     ->limit(50)
                     ->weight(fn (Notification $record) => $record->isUnread() ? 'bold' : 'normal'),
 
@@ -70,9 +80,9 @@ class NotificationResource extends Resource
                     ->label('Mark as Read')
                     ->icon('heroicon-o-check')
                     ->color('success')
-                    ->visible(fn (Notification $record) => $record->isUnread())
+                    ->visible(fn (Notification $record) => $record->isUnread() && (auth()->id() === $record->user_id || auth()->user()->hasRole('super_admin')))
                     ->action(function (Notification $record) {
-                        app(NotificationService::class)->markAsRead($record->id, auth()->id());
+                        app(NotificationService::class)->markAsRead($record->id, $record->user_id);
                         
                         FilamentNotification::make()
                             ->title('Notification marked as read')
@@ -95,6 +105,7 @@ class NotificationResource extends Resource
                     ->label('Mark All as Read')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
+                    ->visible(fn () => !auth()->user()->hasRole('super_admin')) // Only show for non-super_admin
                     ->action(function () {
                         app(NotificationService::class)->markAllAsRead(auth()->id());
                         
@@ -108,6 +119,12 @@ class NotificationResource extends Resource
                 Tables\Filters\Filter::make('unread')
                     ->label('Unread Only')
                     ->query(fn (Builder $query) => $query->unread()),
+                    
+                Tables\Filters\SelectFilter::make('user')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
             ]);
     }
 
