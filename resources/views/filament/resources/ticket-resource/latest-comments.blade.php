@@ -1,7 +1,6 @@
 <div class="space-y-4">
     @if($getState() && $getState()->count() > 0)
-        <div class="divide-y divide-gray-200 dark:divide-gray-700">
-            @foreach($getState() as $comment)
+         @foreach($getState() as $comment)
                 <div class="py-4">
                     <div class="flex items-start gap-x-4">
                         <div class="flex-shrink-0">
@@ -76,14 +75,13 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="mt-2 prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300 border-l-4 border-blue-200 dark:border-blue-800 pl-3">
+                            <div class="mt-2 prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-white border-l-4 border-blue-200 dark:border-blue-800 pl-3">
                                 {!! $comment->comment !!}
                             </div>
                         </div>
                     </div>
                 </div>
             @endforeach
-        </div>
         
     @else
         <div class="flex items-center justify-center py-6 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
