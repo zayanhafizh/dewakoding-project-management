@@ -227,8 +227,9 @@ class ProjectBoard extends Page
                 ->url(fn (): string => TicketResource::getUrl('create', [
                     'project_id' => $this->selectedProject?->id,
                     'ticket_status_id' => $this->selectedProject?->ticketStatuses->first()?->id,
-                ])),
-
+                ]))
+                ->openUrlInNewTab(),
+    
             Action::make('refresh_board')
                 ->label('Refresh Board')
                 ->icon('heroicon-m-arrow-path')
@@ -246,15 +247,10 @@ class ProjectBoard extends Page
             return false;
         }
 
-        // Check Filament Shield permission for viewing tickets
         if (! auth()->user()->can('view_ticket')) {
             return false;
         }
 
-        // Additional business logic: user can view if they are:
-        // 1. Super admin (already covered by permission above)
-        // 2. The ticket creator
-        // 3. Assigned to the ticket
         return auth()->user()->hasRole(['super_admin'])
             || $ticket->user_id === auth()->id()
             || $ticket->assignees()->where('users.id', auth()->id())->exists();
