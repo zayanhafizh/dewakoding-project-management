@@ -9,6 +9,7 @@ A Laravel Filament 3 application for managing projects with ticket management an
 ## Features
 
 - Project management with ticket prefix configuration
+- Role-based access control (using Filament Shield)
 - Team member management with role assignments
 - Customizable ticket statuses with color coding
 - Ticket management with assignees and due dates
@@ -33,6 +34,8 @@ A Laravel Filament 3 application for managing projects with ticket management an
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-2.jpeg)
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-6.jpeg)
 ![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-7.jpeg)
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-8.jpeg)
+![image](https://raw.githubusercontent.com/SeptiawanAjiP/dewakoding-project-management/refs/heads/main/image-9.jpeg)
 
 
 ## Installation
