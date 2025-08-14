@@ -12,13 +12,15 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class ExternalDashboard extends Component
 {
+    use WithPagination;
+    
     public $project;
-    public $tickets;
     public $token;
-    public $selectedStatus = null;
+    public $selectedStatus = '';
     public $selectedPriority = null;
     public $searchTerm = '';
     public $totalTickets = 0;
@@ -27,7 +29,6 @@ class ExternalDashboard extends Component
     public $statuses;
     public $priorities;
     
-    // Widget-style properties
     public $ticketsByStatus = [];
     public $ticketsByPriority = [];
     public $recentTickets = [];
@@ -38,8 +39,7 @@ class ExternalDashboard extends Component
     public $newTicketsThisWeek = 0;
     public $completedThisWeek = 0;
     
-    // Gantt chart properties
-    public $ganttData = [];
+    protected $paginationTheme = 'tailwind';
 
     public function mount($token)
     {
@@ -60,6 +60,7 @@ class ExternalDashboard extends Component
         $this->project = $externalAccess->project;
         
         $this->statuses = TicketStatus::where('project_id', $this->project->id)
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
             
@@ -68,13 +69,11 @@ class ExternalDashboard extends Component
 
         $externalAccess->updateLastAccessed();
 
-        $this->loadTickets();
         $this->loadDashboardData();
         $this->loadWidgetData();
-        $this->loadGanttData();
     }
 
-    public function loadTickets()
+    public function getTicketsProperty()
     {
         $query = $this->project->tickets()
             ->with(['status', 'priority', 'assignees'])
@@ -87,17 +86,46 @@ class ExternalDashboard extends Component
             ->when($this->searchTerm, function ($q) {
                 $q->where(function ($query) {
                     $query->where('name', 'like', '%' . $this->searchTerm . '%')
-                          ->orWhere('description', 'like', '%' . $this->searchTerm . '%');
+                          ->orWhere('description', 'like', '%' . $this->searchTerm . '%')
+                          ->orWhere('uuid', 'like', '%' . $this->searchTerm . '%');
                 });
-            });
+            })
+            ->orderBy('id', 'asc');
     
-        $this->tickets = $query->get();
-        $this->totalTickets = $this->tickets->count();
+        return $query->paginate(10);
+    }
+    
+    public function updatingSelectedStatus()
+    {
+        $this->resetPage();
+    }
+    
+    public function updatingSearchTerm()
+    {
+        $this->resetPage();
+    }
+    
+    public function updatingSelectedPriority()
+    {
+        $this->resetPage();
+    }
+    
+    public function clearFilters()
+    {
+        $this->selectedStatus = '';
+        $this->selectedPriority = null;
+        $this->searchTerm = '';
+        $this->resetPage();
+    }
+    
+    public function gotoPage($page)
+    {
+        $this->setPage($page);
+        $this->dispatch('pagination-updated');
     }
     
     public function loadDashboardData()
     {
-        // Load tickets by status
         $this->ticketsByStatus = TicketStatus::where('project_id', $this->project->id)
             ->withCount(['tickets' => function($query) {
                 $query->where('project_id', $this->project->id);
@@ -113,7 +141,6 @@ class ExternalDashboard extends Component
             })
             ->toArray();
             
-        // Load recent tickets
         $this->recentTickets = $this->project->tickets()
             ->with(['status', 'priority'])
             ->orderBy('updated_at', 'desc')
@@ -123,20 +150,17 @@ class ExternalDashboard extends Component
     
     public function loadWidgetData()
     {
-        // Calculate remaining days
         $remainingDays = null;
         if ($this->project->end_date) {
             $remainingDays = (int) Carbon::now()->diffInDays(Carbon::parse($this->project->end_date), false);
         }
         
-        // Project stats - Updated for new requirements
         $this->projectStats = [
             'total_team' => $this->project->users()->count(),
             'total_tickets' => $this->project->tickets()->count(),
             'remaining_days' => $remainingDays,
             'total_epic' => $this->project->epics()->count(),
             
-            // Keep the old keys for backward compatibility
             'completed_tickets' => $this->project->tickets()
                 ->whereHas('status', function($q) {
                     $q->whereIn('name', ['Completed', 'Done', 'Closed']);
@@ -152,7 +176,6 @@ class ExternalDashboard extends Component
                 })->count(),
         ];
         
-        // Weekly stats
         $this->newTicketsThisWeek = $this->project->tickets()
             ->where('created_at', '>=', Carbon::now()->subDays(7))
             ->count();
@@ -164,7 +187,6 @@ class ExternalDashboard extends Component
             ->where('updated_at', '>=', Carbon::now()->subDays(7))
             ->count();
         
-        // Monthly trend data
         $this->monthlyTrend = $this->project->tickets()
             ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
@@ -173,7 +195,6 @@ class ExternalDashboard extends Component
             ->pluck('count', 'month')
             ->toArray();
         
-        // Recent activities from ticket history
         $this->recentActivities = TicketHistory::whereHas('ticket', function($q) {
                 $q->where('project_id', $this->project->id);
             })
@@ -183,152 +204,6 @@ class ExternalDashboard extends Component
             ->get();
     }
     
-    public function loadGanttData()
-    {
-        try {
-            $tickets = $this->project->tickets()
-                ->select('id', 'name', 'due_date', 'created_at', 'ticket_status_id')
-                ->with(['status:id,name,color'])
-                ->whereNotNull('due_date')
-                ->orderBy('due_date')
-                ->get();
-    
-            if ($tickets->isEmpty()) {
-                $this->ganttData = ['data' => [], 'links' => []];
-                return;
-            }
-    
-            $ganttTasks = [];
-            $now = Carbon::now();
-    
-            foreach ($tickets as $ticket) {
-                if (!$ticket->due_date) {
-                    continue;
-                }
-                
-                try {
-                    $startDate = $ticket->created_at ? Carbon::parse($ticket->created_at) : $now->copy()->subDays(7);
-                    $endDate = Carbon::parse($ticket->due_date);
-                    
-                    if ($endDate->lte($startDate)) {
-                        $endDate = $startDate->copy()->addDays(1);
-                    }
-                    
-                    $progress = $this->getSimpleProgress($ticket->status->name ?? '') / 100;
-                    $isOverdue = $endDate->lt($now) && $progress < 1;
-                    
-                    $taskData = [
-                        'id' => (string) $ticket->id,
-                        'text' => $this->truncateName($ticket->name ?? 'Untitled Ticket'),
-                        'start_date' => $startDate->format('d-m-Y H:i'),
-                        'end_date' => $endDate->format('d-m-Y H:i'),
-                        'duration' => max(1, $startDate->diffInDays($endDate)),
-                        'progress' => max(0, min(1, $progress)),
-                        'type' => 'task',
-                        'readonly' => true,
-                        'color' => $isOverdue ? '#ef4444' : ($ticket->status->color ?? '#3b82f6'),
-                        'textColor' => '#ffffff',
-                        'status' => $ticket->status->name ?? 'Unknown',
-                        'is_overdue' => $isOverdue
-                    ];
-                    
-                    $ganttTasks[] = $taskData;
-                    
-                } catch (\Exception $e) {
-                    \Log::error('Error processing ticket ' . $ticket->id . ': ' . $e->getMessage());
-                    continue;
-                }
-            }
-            
-            $this->ganttData = [
-                'data' => $ganttTasks,
-                'links' => []
-            ];
-            
-            $this->dispatch('refreshGanttChart');
-            
-        } catch (\Exception $e) {
-            \Log::error('Error generating gantt data: ' . $e->getMessage());
-            $this->ganttData = ['data' => [], 'links' => []];
-        }
-    }
-    
-    // Tambahkan method untuk refresh gantt data
-    public function refreshGanttData()
-    {
-        $this->loadGanttData();
-    }
-    
-    private function truncateName($name, $length = 50): string
-    {
-        return strlen($name) > $length ? substr($name, 0, $length) . '...' : $name;
-    }
-
-    private function getSimpleProgress($statusName): int
-    {
-        if (!$this->project || empty($statusName)) {
-            return 0;
-        }
-        
-        try {
-            $statuses = $this->project->ticketStatuses()
-                ->orderBy('sort_order')
-                ->get();
-            
-            if ($statuses->isEmpty()) {
-                return 0;
-            }
-            
-            $currentStatus = $statuses->firstWhere('name', $statusName);
-            
-            if (!$currentStatus) {
-                return 0;
-            }
-            
-            $totalStatuses = $statuses->count();
-            $currentPosition = $statuses->search(function ($status) use ($currentStatus) {
-                return $status->id === $currentStatus->id;
-            });
-            
-            if ($currentPosition === false) {
-                return 0;
-            }
-            
-            $progress = (($currentPosition + 1) / $totalStatuses) * 100;
-            
-            return (int) round(max(0, min(100, $progress)));
-        } catch (\Exception $e) {
-            \Log::error('Error calculating progress: ' . $e->getMessage());
-            return 0;
-        }
-    }
-
-    public function updatedSelectedStatus()
-    {
-        $this->loadTickets();
-    }
-
-    public function updatedSelectedPriority()
-    {
-        $this->loadTickets();
-    }
-
-    public function updatedSearchTerm()
-    {
-        $this->loadTickets();
-    }
-
-    public function logout()
-    {
-        // Clear session data
-        Session::forget('external_authenticated_' . $this->token);
-        Session::forget('external_project_id');
-        Session::forget('external_authenticated');
-        
-        // Redirect to login page
-        return redirect()->route('external.login', $this->token);
-    }
-
     public function render()
     {
         return view('livewire.external-dashboard')

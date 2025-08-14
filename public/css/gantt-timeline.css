@@ -184,3 +184,33 @@
         font-size: 11px;
     }
 }
+
+
+/* Add these styles to your existing gantt-timeline.css file */
+.gantt-task-text,
+.gantt-task-text-truncated {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.gantt-task-text-truncated {
+    text-overflow: ellipsis;
+}
+
+.gantt-task-row {
+    position: relative;
+}
+
+/* Ensure tooltips are visible */
+.gantt_grid_data .gantt_cell {
+    overflow: visible;
+}
+
+/* Style for task name column */
+.gantt_grid_data .gantt_cell[data-column="text"] {
+    padding: 8px 12px;
+    line-height: 1.4;
+}
