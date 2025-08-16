@@ -95,9 +95,14 @@ class TicketsRelationManager extends RelationManager
                     })
                     ->helperText('Select multiple users to assign this ticket to. Only project members can be assigned.'),
                 
+                Forms\Components\DatePicker::make('start_date')
+                    ->label('Start Date')
+                    ->nullable(),
+                
                 Forms\Components\DatePicker::make('due_date')
                     ->label('Due Date')
-                    ->nullable(),
+                    ->nullable()
+                    ->afterOrEqual('start_date'),
                 
                 Forms\Components\RichEditor::make('description')
                     ->columnSpanFull()
@@ -157,6 +162,10 @@ class TicketsRelationManager extends RelationManager
                     ->label('Created By')
                     ->sortable()
                     ->toggleable(),
+                
+                Tables\Columns\TextColumn::make('start_date')
+                    ->date()
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('due_date')
                     ->date()
@@ -276,10 +285,44 @@ class TicketsRelationManager extends RelationManager
                                     ->success()
                                     ->send();
                             } else {
+                                // Get actual errors and failures
+                                $importErrors = $import->errors();
+                                $importFailures = $import->failures();
+                                
+                                $errorMessage = "No tickets were imported.";
+                                
+                                // Show actual validation failures if they exist
+                                if (!empty($importFailures)) {
+                                    $errorMessage .= "\n\n**Validation Errors:**";
+                                    foreach ($importFailures as $failure) {
+                                        $row = $failure->row();
+                                        $errors = implode(', ', $failure->errors());
+                                        $errorMessage .= "\n• Row {$row}: {$errors}";
+                                    }
+                                }
+                                
+                                // Show actual processing errors if they exist
+                                if (!empty($importErrors)) {
+                                    $errorMessage .= "\n\n**Processing Errors:**";
+                                    foreach ($importErrors as $error) {
+                                        $errorMessage .= "\n• {$error}";
+                                    }
+                                }
+                                
+                                // Only show generic help if no specific errors are available
+                                if (empty($importFailures) && empty($importErrors)) {
+                                    $errorMessage .= "\n\n**Possible causes:**";
+                                    $errorMessage .= "\n• File contains only headers or sample data";
+                                    $errorMessage .= "\n• All rows were skipped due to validation issues";
+                                    $errorMessage .= "\n• File format is incorrect";
+                                    $errorMessage .= "\n\nPlease check your file and try again.";
+                                }
+                                
                                 Notification::make()
                                     ->title('Import Failed')
-                                    ->body('No tickets were imported. Please check your file format and data.')
+                                    ->body($errorMessage)
                                     ->warning()
+                                    ->persistent()
                                     ->send();
                             }
                         } catch (\Exception $e) {

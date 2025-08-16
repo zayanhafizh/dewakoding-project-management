@@ -490,35 +490,35 @@
                                                 <button 
                                                     wire:click="setSortOrder({{ $status->id }}, 'date_created_newest')"
                                                     @click="open = false"
-                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-white rounded"
                                                 >
                                                     Date created (newest first)
                                                 </button>
                                                 <button 
                                                     wire:click="setSortOrder({{ $status->id }}, 'date_created_oldest')"
                                                     @click="open = false"
-                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-white rounded"
                                                 >
                                                     Date created (oldest first)
                                                 </button>
                                                 <button 
                                                     wire:click="setSortOrder({{ $status->id }}, 'card_name_alphabetical')"
                                                     @click="open = false"
-                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-white rounded"
                                                 >
                                                     Card name (alphabetically)
                                                 </button>
                                                 <button 
                                                     wire:click="setSortOrder({{ $status->id }}, 'due_date')"
                                                     @click="open = false"
-                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-white rounded"
                                                 >
                                                     Due date
                                                 </button>
                                                 <button 
                                                     wire:click="setSortOrder({{ $status->id }}, 'priority')"
                                                     @click="open = false"
-                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-white rounded"
                                                 >
                                                     Priority
                                                 </button>

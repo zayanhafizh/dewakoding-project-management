@@ -134,15 +134,14 @@ class TicketResource extends Resource
                         modifyQueryUsing: function (Builder $query, callable $get) {
                             $projectId = $get('project_id');
                             if (! $projectId) {
-                                return $query->whereRaw('1 = 0'); // Return empty result
+                                return $query->whereRaw('1 = 0');
                             }
 
                             $project = Project::find($projectId);
                             if (! $project) {
-                                return $query->whereRaw('1 = 0'); // Return empty result
+                                return $query->whereRaw('1 = 0');
                             }
 
-                            // Only show project members
                             return $query->whereHas('projects', function ($query) use ($projectId) {
                                 $query->where('projects.id', $projectId);
                             });
@@ -153,6 +152,11 @@ class TicketResource extends Resource
                     ->helperText('Select multiple users to assign this ticket to. Only project members can be assigned.')
                     ->hidden(fn (callable $get): bool => !$get('project_id'))
                     ->live(),
+                
+                Forms\Components\DatePicker::make('start_date')
+                    ->label('Start Date')
+                    ->nullable(),
+                
                 Forms\Components\DatePicker::make('due_date')
                     ->label('Due Date')
                     ->nullable(),
@@ -215,6 +219,11 @@ class TicketResource extends Resource
                     ->sortable()
                     ->searchable()
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('start_date')
+                    ->label('Start Date')
+                    ->date()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('due_date')
                     ->label('Due Date')

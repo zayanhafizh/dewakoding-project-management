@@ -97,8 +97,8 @@ class TicketTimeline extends Page implements HasForms
         if (!$this->projectId) {
             return collect();
         }
-
-        return Ticket::select('id', 'name', 'due_date', 'created_at', 'ticket_status_id')
+    
+        return Ticket::select('id', 'name', 'due_date', 'start_date', 'ticket_status_id')
             ->with(['status:id,name,color'])
             ->where('project_id', $this->projectId)
             ->whereNotNull('due_date')
@@ -127,7 +127,8 @@ class TicketTimeline extends Page implements HasForms
                 }
                 
                 try {
-                    $startDate = $ticket->created_at ? Carbon::parse($ticket->created_at) : $now->copy()->subDays(7);
+                    // Use start_date if available, otherwise fall back to 7 days before due_date
+                    $startDate = $ticket->start_date ? Carbon::parse($ticket->start_date) : Carbon::parse($ticket->due_date)->subDays(7);
                     $endDate = Carbon::parse($ticket->due_date);
                     
                     if ($endDate->lte($startDate)) {

@@ -19,6 +19,7 @@ class Ticket extends Model
         'priority_id',
         'name',
         'description',
+        'start_date',
         'due_date',
         'uuid',
         'epic_id',
@@ -26,6 +27,7 @@ class Ticket extends Model
     ];
 
     protected $casts = [
+        'start_date' => 'date',
         'due_date' => 'date',
     ];
 

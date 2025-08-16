@@ -118,10 +118,41 @@ class ImportTicketsAction
                             ->success()
                             ->send();
                     } else {
+                        $errorDetails = [];
+                        
+                        // Collect validation errors
+                        if (count($failures) > 0) {
+                            $errorDetails[] = "Validation errors found in " . count($failures) . " row(s):";
+                            foreach ($failures as $failure) {
+                                $errorDetails[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
+                            }
+                        }
+                        
+                        // Collect general errors
+                        if (count($errors) > 0) {
+                            $errorDetails[] = "Processing errors:";
+                            foreach ($errors as $error) {
+                                $errorDetails[] = $error;
+                            }
+                        }
+                        
+                        // If no specific errors, provide general guidance
+                        if (empty($errorDetails)) {
+                            $errorDetails = [
+                                "Common issues to check:",
+                                "• Ensure the Excel file uses the correct template format",
+                                "• Verify that 'Title' and 'Status' columns are filled",
+                                "• Check that status names match existing project statuses",
+                                "• Ensure date formats are YYYY-MM-DD",
+                                "• Verify assignee emails exist and are project members"
+                            ];
+                        }
+                        
                         Notification::make()
                             ->title('Import Failed')
-                            ->body('No tickets were imported. Please check your file format and data.')
+                            ->body(implode("\n", $errorDetails))
                             ->warning()
+                            ->persistent()
                             ->send();
                     }
                     
@@ -129,10 +160,23 @@ class ImportTicketsAction
                     // Clean up uploaded file
                     Storage::disk('local')->delete($data['excel_file']);
                     
+                    // Provide more specific error information
+                    $errorMessage = 'An error occurred during import: ' . $e->getMessage();
+                    
+                    // Add specific guidance based on error type
+                    if (str_contains($e->getMessage(), 'file')) {
+                        $errorMessage .= "\n\nFile-related issues to check:\n• Ensure the file is a valid Excel format (.xlsx or .xls)\n• Check that the file is not corrupted\n• Verify the file size is under 5MB";
+                    } elseif (str_contains($e->getMessage(), 'database') || str_contains($e->getMessage(), 'SQL')) {
+                        $errorMessage .= "\n\nDatabase-related issues to check:\n• Verify all required fields are provided\n• Check that referenced data (statuses, users, epics) exist\n• Ensure data types match expected formats";
+                    } else {
+                        $errorMessage .= "\n\nGeneral troubleshooting:\n• Download and use the latest template\n• Check that all required columns are present\n• Verify data format matches the template";
+                    }
+                    
                     Notification::make()
                         ->title('Import Error')
-                        ->body('An error occurred during import: ' . $e->getMessage())
+                        ->body($errorMessage)
                         ->danger()
+                        ->persistent()
                         ->send();
                 }
             });

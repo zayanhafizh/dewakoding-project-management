@@ -23,6 +23,7 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
         'assignee' => 'Assignee',
         'project' => 'Project',
         'epic' => 'Epic',
+        'start_date' => 'Start Date',
         'due_date' => 'Due Date',
         'created_at' => 'Created At',
         'updated_at' => 'Updated At',
@@ -76,6 +77,9 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
                     break;
                 case 'epic':
                     $row[] = $ticket->epic?->name ?? 'No Epic';
+                    break;
+                case 'start_date':
+                    $row[] = $ticket->start_date ? $ticket->start_date->format('Y-m-d') : '';
                     break;
                 case 'due_date':
                     $row[] = $ticket->due_date ? $ticket->due_date->format('Y-m-d') : '';

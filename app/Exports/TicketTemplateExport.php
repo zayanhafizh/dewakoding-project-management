@@ -56,7 +56,8 @@ class TicketTemplateSheet implements FromArray, WithHeadings, WithStyles, Should
             'Priority', 
             'Epic',
             'Assignees Comma Separated Emails',
-            'Due Date YYYY MM DD',
+            'Start Date YYYY-MM-DD',
+            'Due Date YYYY-MM-DD',
         ];
     }
 
@@ -71,6 +72,7 @@ class TicketTemplateSheet implements FromArray, WithHeadings, WithStyles, Should
                 'Medium',
                 '',
                 'user@example.com, user2@example.com',
+                '2024-01-01',
                 '2024-12-31',
             ],
             // Add more sample rows if needed
