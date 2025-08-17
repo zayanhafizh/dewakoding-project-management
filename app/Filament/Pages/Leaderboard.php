@@ -24,7 +24,7 @@ class Leaderboard extends Page implements HasForms
     protected static ?string $navigationGroup = 'Analytics';
     protected static ?string $slug = 'leaderboard';
 
-    public string $timeRange = 'thisweek'; // 'thisweek', '1month'
+    public string $timeRange = '7days'; // Changed from 'thisweek' to '7days'
     public int $topCount = 10; // Number of top contributors to show
 
     public function getSubheading(): ?string
@@ -138,13 +138,13 @@ class Leaderboard extends Page implements HasForms
         $startDate = $dateRange['start'];
         $endDate = $dateRange['end'];
         
-        // Get unique dates where user had activity
+        // Get unique dates where user had activity - simplified approach
         $ticketDates = Ticket::where('created_by', $userId)
             ->whereBetween('created_at', [
                 $startDate->startOfDay()->utc(), 
                 $endDate->endOfDay()->utc()
             ])
-            ->selectRaw('DATE(CONVERT_TZ(created_at, "+00:00", ?)) as activity_date', [config('app.timezone')])
+            ->selectRaw('DATE(created_at) as activity_date')
             ->distinct()
             ->pluck('activity_date');
             
@@ -153,7 +153,7 @@ class Leaderboard extends Page implements HasForms
                 $startDate->startOfDay()->utc(), 
                 $endDate->endOfDay()->utc()
             ])
-            ->selectRaw('DATE(CONVERT_TZ(created_at, "+00:00", ?)) as activity_date', [config('app.timezone')])
+            ->selectRaw('DATE(created_at) as activity_date')
             ->distinct()
             ->pluck('activity_date');
             
@@ -162,7 +162,7 @@ class Leaderboard extends Page implements HasForms
                 $startDate->startOfDay()->utc(), 
                 $endDate->endOfDay()->utc()
             ])
-            ->selectRaw('DATE(CONVERT_TZ(created_at, "+00:00", ?)) as activity_date', [config('app.timezone')])
+            ->selectRaw('DATE(created_at) as activity_date')
             ->distinct()
             ->pluck('activity_date');
             
