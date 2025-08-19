@@ -26,6 +26,8 @@ class TicketResource extends Resource
 
     protected static ?string $navigationGroup = 'Project Management';
 
+    protected static ?int $navigationSort = 5;
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();

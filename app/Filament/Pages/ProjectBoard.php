@@ -22,7 +22,7 @@ class ProjectBoard extends Page
     protected static ?string $title = 'Project Board';
     protected static ?string $navigationLabel = 'Project Board';
     protected static ?string $navigationGroup = 'Project Management';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     public function getSubheading(): ?string
     {

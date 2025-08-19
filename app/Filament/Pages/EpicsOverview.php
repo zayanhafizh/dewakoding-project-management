@@ -16,13 +16,13 @@ class EpicsOverview extends Page
     protected static ?string $navigationGroup = 'Project Management';
     protected static ?string $navigationLabel = 'Epics';
     protected static ?string $title = 'Epics Overview';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 7;
 
     public function getSubheading(): ?string
     {
         return 'Manage and track project epics with their associated tickets and progress';
     }
-    // UPDATED: Add URL parameter support
+
     protected static ?string $slug = 'epics-overview/{project_id?}';
 
     public Collection $epics;
@@ -33,16 +33,13 @@ class EpicsOverview extends Page
 
     public Collection $availableProjects;
 
-    // UPDATED: Handle project_id from URL
     public function mount($project_id = null): void
     {
         $this->loadAvailableProjects();
 
-        // Handle project_id from URL
         if ($project_id && $this->availableProjects->contains('id', $project_id)) {
             $this->selectedProjectId = (int) $project_id;
         } elseif ($project_id && !$this->availableProjects->contains('id', $project_id)) {
-            // Project not found or user doesn't have access
             Notification::make()
                 ->title('Project Not Found')
                 ->body('The selected project was not found or you do not have access to it.')
@@ -83,17 +80,14 @@ class EpicsOverview extends Page
         $this->epics = $query->get();
     }
 
-    // UPDATED: Handle project selection and update URL
     public function updatedSelectedProjectId($value): void
     {
         $this->selectedProjectId = $value ? (int) $value : null;
         
         if ($this->selectedProjectId) {
-            // Redirect to URL with project_id
             $url = static::getUrl(['project_id' => $this->selectedProjectId]);
             $this->redirect($url);
         } else {
-            // Redirect to URL without project_id
             $this->redirect(static::getUrl());
         }
         
@@ -115,7 +109,6 @@ class EpicsOverview extends Page
         return in_array($epicId, $this->expandedEpics);
     }
 
-    // Helper method to get ticket statistics for an epic
     public function getEpicStats(Epic $epic): array
     {
         $tickets = $epic->tickets;
@@ -152,7 +145,6 @@ class EpicsOverview extends Page
         ];
     }
 
-    // Helper method to get assignees display for a ticket
     public function getTicketAssigneesDisplay($ticket): string
     {
         if ($ticket->assignees->isEmpty()) {

@@ -1,22 +1,20 @@
 <?php
 
-namespace App\Filament\Resources\ProjectResource\Pages;
+namespace App\Filament\Pages;
 
-use App\Filament\Resources\ProjectResource;
 use App\Models\Project;
-use Filament\Resources\Pages\Page;
+use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
-class ProjectGanttChart extends Page
+class ProjectTimeline extends Page
 {
-    protected static string $resource = ProjectResource::class;
-    
-    protected static string $view = 'filament.pages.project-gantt-chart';
-    
-    protected static ?string $title = 'Project Timeline';
-    
-    protected static ?string $navigationLabel = 'Timeline';
+    protected static string $view = 'filament.pages.project-timeline';
+    protected static ?string $navigationLabel = 'Project Timeline';
+    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
+    protected static ?string $navigationGroup = 'Project Management';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $slug = 'project-timeline';
     
     public array $counts = [];
     public array $ganttData = ['data' => [], 'links' => []];

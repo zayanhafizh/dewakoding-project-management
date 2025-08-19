@@ -17,9 +17,9 @@ class TicketTimeline extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
-    protected static ?string $navigationLabel = 'Timeline';
-    protected static ?string $title = 'Project Timeline';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'Ticket Timeline';
+    protected static ?string $title = 'Ticket Timeline';
+    protected static ?int $navigationSort = 6;
     protected static string $view = 'filament.pages.ticket-timeline';
     protected static ?string $navigationGroup = 'Project Management';
     protected static ?string $slug = 'ticket-timeline/{project_id?}';

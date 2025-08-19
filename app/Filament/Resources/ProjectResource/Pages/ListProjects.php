@@ -13,11 +13,6 @@ class ListProjects extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('timeline')
-                ->label('Timeline')
-                ->icon('heroicon-o-calendar')
-                ->color('info')
-                ->url(fn () => ProjectResource\Pages\ProjectGanttChart::getUrl()),
             Actions\CreateAction::make(),
         ];
     }

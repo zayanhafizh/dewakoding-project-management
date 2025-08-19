@@ -22,6 +22,8 @@ class ProjectResource extends Resource
     protected static ?string $model = Project::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Project Management';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -159,7 +161,7 @@ class ProjectResource extends Resource
             'create' => Pages\CreateProject::route('/create'),
             'view' => Pages\ViewProject::route('/{record}'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
-            'gantt-chart' => Pages\ProjectGanttChart::route('/gantt-chart'),
+            // Hapus baris ini: 'gantt-chart' => Pages\ProjectGanttChart::route('/gantt-chart'),
         ];
     }
 
