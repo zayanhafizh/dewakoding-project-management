@@ -15,7 +15,12 @@ class TicketStatus extends Model
         'project_id',
         'name',
         'sort_order',
-        'color'
+        'color',
+        'is_completed'
+    ];
+
+    protected $casts = [
+        'is_completed' => 'boolean',
     ];
 
     public function project(): BelongsTo

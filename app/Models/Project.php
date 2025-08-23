@@ -95,6 +95,23 @@ class Project extends Model
         return $today->diffInDays($endDate);
     }
     
+    public function getProgressPercentageAttribute(): float
+    {
+        $totalTickets = $this->tickets()->count();
+        
+        if ($totalTickets === 0) {
+            return 0.0;
+        }
+        
+        $completedTickets = $this->tickets()
+            ->whereHas('status', function ($query) {
+                $query->where('is_completed', true);
+            })
+            ->count();
+        
+        return round(($completedTickets / $totalTickets) * 100, 1);
+    }
+    
     public function externalAccess(): HasOne
     {
         return $this->hasOne(ExternalAccess::class);

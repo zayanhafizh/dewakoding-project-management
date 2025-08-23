@@ -85,6 +85,19 @@ class ProjectResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('ticket_prefix')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('progress_percentage')
+                    ->label('Progress')
+                    ->getStateUsing(function (Project $record): string {
+                        return $record->progress_percentage . '%';
+                    })
+                    ->badge()
+                    ->color(fn (Project $record): string => 
+                        $record->progress_percentage >= 100 ? 'success' :
+                        ($record->progress_percentage >= 75 ? 'info' :
+                        ($record->progress_percentage >= 50 ? 'warning' :
+                        ($record->progress_percentage >= 25 ? 'gray' : 'danger')))
+                    )
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('start_date')
                     ->date('d/m/Y')
                     ->sortable(),

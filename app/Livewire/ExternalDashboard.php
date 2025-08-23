@@ -159,12 +159,13 @@ class ExternalDashboard extends Component
             'total_team' => $this->project->users()->count(),
             'total_tickets' => $this->project->tickets()->count(),
             'remaining_days' => $remainingDays,
-            'total_epic' => $this->project->epics()->count(),
+            'progress_percentage' => $this->project->progress_percentage,
             
             'completed_tickets' => $this->project->tickets()
                 ->whereHas('status', function($q) {
-                    $q->whereIn('name', ['Completed', 'Done', 'Closed']);
+                    $q->where('is_completed', true);
                 })->count(),
+            
             'in_progress_tickets' => $this->project->tickets()
                 ->whereHas('status', function($q) {
                     $q->whereIn('name', ['In Progress', 'Doing']);
@@ -172,7 +173,7 @@ class ExternalDashboard extends Component
             'overdue_tickets' => $this->project->tickets()
                 ->where('due_date', '<', Carbon::now())
                 ->whereHas('status', function($q) {
-                    $q->whereNotIn('name', ['Completed', 'Done', 'Closed']);
+                    $q->where('is_completed', false);
                 })->count(),
         ];
         
