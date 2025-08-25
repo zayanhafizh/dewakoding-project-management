@@ -24,6 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
     ];
 
     /**
@@ -70,7 +71,6 @@ class User extends Authenticatable
         return $this->hasMany(Ticket::class, 'created_by');
     }
 
-    // Helper methods
     public function isAssignedToTicket(Ticket $ticket): bool
     {
         return $this->assignedTickets()->where('ticket_id', $ticket->id)->exists();
