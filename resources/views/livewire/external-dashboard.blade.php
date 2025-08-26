@@ -154,7 +154,7 @@
                                     <div class="font-medium">{{ $ticket->name }}</div>
                                     @if($ticket->description)
                                         <div class="text-gray-500 text-xs mt-1 truncate max-w-xs">
-                                            {{ Str::limit($ticket->description, 60) }}
+                                           {!! Str::limit(strip_tags($ticket->description, '<b><i><em><strong>'), 60) !!}
                                         </div>
                                     @endif
                                 </td>

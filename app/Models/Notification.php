@@ -42,6 +42,12 @@ class Notification extends Model
         return is_null($this->read_at);
     }
 
+    public function markAsRead(): bool
+    {
+        $this->read_at = now();
+        return $this->save();
+    }
+
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class, 'data->ticket_id');
