@@ -29,8 +29,7 @@ class ViewTicket extends ViewRecord
     {
         $ticket = $this->getRecord();
         $project = $ticket->project;
-        $canComment = auth()->user()->hasRole(['super_admin'])
-            || $project->members()->where('users.id', auth()->id())->exists();
+        $canComment = auth()->user()->can('createForTicket', [TicketComment::class, $ticket]);
 
         return [
             Actions\EditAction::make()
@@ -92,7 +91,7 @@ class ViewTicket extends ViewRecord
         }
 
         // Check permissions
-        if (! auth()->user()->hasRole(['super_admin']) && $comment->user_id !== auth()->id()) {
+        if (! auth()->user()->can('update', $comment)) {
             Notification::make()
                 ->title('You do not have permission to edit this comment')
                 ->danger()
@@ -119,7 +118,7 @@ class ViewTicket extends ViewRecord
         }
 
         // Check permissions
-        if (! auth()->user()->hasRole(['super_admin']) && $comment->user_id !== auth()->id()) {
+        if (! auth()->user()->can('delete', $comment)) {
             Notification::make()
                 ->title('You do not have permission to delete this comment')
                 ->danger()
@@ -304,7 +303,7 @@ class ViewTicket extends ViewRecord
                     }
 
                     // Check permissions
-                    if (! auth()->user()->hasRole(['super_admin']) && $comment->user_id !== auth()->id()) {
+                    if (! auth()->user()->can('update', $comment)) {
                         Notification::make()
                             ->title('You do not have permission to edit this comment')
                             ->danger()

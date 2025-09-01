@@ -2,18 +2,20 @@
 
 namespace App\Policies;
 
-use App\Models\TicketPriority;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use App\Models\TicketPriority;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class TicketPriorityPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->can('view_any_ticket::priority');
     }
 
     /**
@@ -21,7 +23,7 @@ class TicketPriorityPolicy
      */
     public function view(User $user, TicketPriority $ticketPriority): bool
     {
-        return false;
+        return $user->can('view_ticket::priority');
     }
 
     /**
@@ -29,7 +31,7 @@ class TicketPriorityPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->can('create_ticket::priority');
     }
 
     /**
@@ -37,7 +39,7 @@ class TicketPriorityPolicy
      */
     public function update(User $user, TicketPriority $ticketPriority): bool
     {
-        return false;
+        return $user->can('update_ticket::priority');
     }
 
     /**
@@ -45,22 +47,62 @@ class TicketPriorityPolicy
      */
     public function delete(User $user, TicketPriority $ticketPriority): bool
     {
-        return false;
+        return $user->can('delete_ticket::priority');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, TicketPriority $ticketPriority): bool
+    public function deleteAny(User $user): bool
     {
-        return false;
+        return $user->can('delete_any_ticket::priority');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, TicketPriority $ticketPriority): bool
     {
-        return false;
+        return $user->can('force_delete_ticket::priority');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_ticket::priority');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, TicketPriority $ticketPriority): bool
+    {
+        return $user->can('restore_ticket::priority');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_ticket::priority');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, TicketPriority $ticketPriority): bool
+    {
+        return $user->can('replicate_ticket::priority');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_ticket::priority');
     }
 }
